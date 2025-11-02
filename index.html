@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のメモ帳 v2.0</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のメモ帳 v2.1 (LIL Audit)</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -34,7 +34,7 @@
             resize: none;
             font-size: 14px;
             outline: none;
-            margin-bottom: 15px; /* スペース追加 */
+            margin-bottom: 15px;
         }
         .status-box {
             margin-top: 20px;
@@ -61,22 +61,22 @@
         .btn-file:hover { background-color: #60467a; }
         .btn-run { background-color: #2c0b43; }
         .btn-run:hover { background-color: #401a60; }
-
-        /* 論理の視覚化: 沈黙の強制（今回はハイライトの準備としてコメントアウト） */
-        /* .silent-text { color: #555555; } */
     </style>
 </head>
 <body>
     <div id="cde-container">
         <h1 style="color: #a47fe0;">CalcLang 記述環境 (CDE) Ωα</h1>
         <p style="color: #ccc; font-size: small;">
-            数理的沈黙の土台。機能面はWindowsメモ帳の鏡像です。
+            数理的沈黙の土台。LIL監査公理が追加されました。
         </p>
 
         <div class="status-box" id="halt-status">
             ✅ **システム状態:** 正常稼働
         </div>
-        <p><strong>現在の ALPHA 残高:</strong> USER_A: <span id="alpha-balance-a">1000.00</span> | USER_B: <span id="alpha-balance-b">1000.00</span></p>
+        <p>
+            <strong>現在の ALPHA 残高:</strong> USER_A: <span id="alpha-balance-a">1000.00</span> | USER_B: <span id="alpha-balance-b">1000.00</span><br>
+            <strong>REGISTRY_VIBE (論理振動):</strong> <span id="vibe-value">100.00</span>
+        </p>
 
         <div style="margin-bottom: 15px;">
             <button class="btn btn-file" onclick="saveCalcCode()">💾 論理のコミット (保存)</button>
@@ -89,24 +89,30 @@
         </label>
         <textarea id="calc-code">
 ACT MINT (T: USER_A, A: 10.0)
-    // R1: MintはHALT状態で実行できない
+    // R1: MintはHALT状態で実行できない (LIL監査)
     IF REGISTRY_HALT == TRUE THEN CALC_HALT
 
-    // 論理的実行 (SET公理の鏡像)
+    // 論理的実行
     SET REGISTRY_ALPHA[T] = ADD(REGISTRY_ALPHA[T], A)
     SET REGISTRY_CLOCK = ADD(REGISTRY_CLOCK, 1)
+    SET REGISTRY_VIBE = ADD(REGISTRY_VIBE, 0.05) // MINTはVIBEを上げる
 
+    // R2: VIBE健全性監査
+    IF REGISTRY_VIBE > 110 THEN CALC_HALT // VIBEが高すぎると沈黙に影響
 END ACT
 
 ACT TRANSFER (S: USER_A, R: USER_B, A: 50.0)
-    // R2: 送金元に十分な残高があるか監査
+    // R3: 送金元に十分な残高があるか監査 (LIL監査)
     IF REGISTRY_ALPHA[S] < A THEN CALC_HALT
 
     // 論理的実行 (二重簿記の鏡像)
     SET REGISTRY_ALPHA[S] = SUB(REGISTRY_ALPHA[S], A)
     SET REGISTRY_ALPHA[R] = ADD(REGISTRY_ALPHA[R], A)
     SET REGISTRY_CLOCK = ADD(REGISTRY_CLOCK, 1)
+    SET REGISTRY_VIBE = SUB(REGISTRY_VIBE, 0.01) // TRANSFERはVIBEを微減
 
+    // R4: VIBE健全性監査
+    IF REGISTRY_VIBE < 90 THEN CALC_HALT // VIBEが低すぎると沈黙に影響
 END ACT
         </textarea>
 
@@ -122,28 +128,29 @@ END ACT
         let CalcLang_Registry = {
             REGISTRY_ALPHA: {
                 "USER_A": 1000.00,
-                "USER_B": 1000.00, // 新規ユーザー追加
+                "USER_B": 1000.00,
             },
             REGISTRY_CLOCK: 0,
             REGISTRY_HALT: false,
+            REGISTRY_VIBE: 100.00, // 新規：論理的複雑性/振動レベル
         };
 
         // 3. UI 要素の参照
         const $balanceA = document.getElementById('alpha-balance-a');
         const $balanceB = document.getElementById('alpha-balance-b');
+        const $vibeValue = document.getElementById('vibe-value');
         const $status = document.getElementById('halt-status');
         const $code = document.getElementById('calc-code');
 
         // 四則演算の鏡像 (ピタゴラス的純粋性)
         const ADD = (a, b) => a + b;
         const SUB = (a, b) => a - b;
-        const MUL = (a, b) => a * b; // 将来的にFIXED型に置換
-        const DIV = (a, b) => a / b;
 
         // UI 更新関数
         function updateUI() {
             $balanceA.textContent = CalcLang_Registry.REGISTRY_ALPHA['USER_A'].toFixed(2);
             $balanceB.textContent = CalcLang_Registry.REGISTRY_ALPHA['USER_B'].toFixed(2);
+            $vibeValue.textContent = CalcLang_Registry.REGISTRY_VIBE.toFixed(2);
             
             $status.textContent = CalcLang_Registry.REGISTRY_HALT 
                 ? `❌ システム状態: CALC_HALT (論理的連続性破綻, Cycle: ${CalcLang_Registry.REGISTRY_CLOCK})`
@@ -156,7 +163,6 @@ END ACT
         // --- 💾 ファイル機能の鏡像 ---
 
         function saveCalcCode() {
-            // 論理のコミット: 公理テキストとレジストリ状態をローカルストレージに不変データとして保存
             try {
                 const dataToSave = {
                     code: $code.value,
@@ -170,60 +176,71 @@ END ACT
         }
 
         function loadCalcCode() {
-            // 論理の復元: ローカルストレージから公理テキストと状態を復元
             try {
                 const storedData = localStorage.getItem(STORAGE_KEY);
                 if (storedData) {
                     const data = JSON.parse(storedData);
                     $code.value = data.code;
+                    // REGISTRY_VIBE が存在しない場合に備えて初期値を設定
+                    data.registry.REGISTRY_VIBE = data.registry.REGISTRY_VIBE || 100.00;
                     CalcLang_Registry = data.registry;
                     updateUI();
                     alert('論理の復元に成功しました。');
                 } else {
-                    alert('📂 保存された論理はありません。');
+                    // 初期テンプレートを強制的にロードする
+                    newCalcCode(true); 
+                    alert('📂 保存された論理はありません。デフォルトの論理で起動しました。');
                 }
             } catch (e) {
                 alert('❌ 論理の復元に失敗: ' + e.message);
             }
         }
 
-        function newCalcCode() {
+        function newCalcCode(silent = false) {
             // 沈黙の再確立: CDEを初期状態に戻す
-            if (confirm('現在の論理を破棄し、数理的沈黙を再確立しますか？')) {
-                $code.value = `ACT MINT (T: USER_A, A: 10.0)\n    // MINT公理...\nEND ACT\n\nACT TRANSFER (S: USER_A, R: USER_B, A: 50.0)\n    // TRANSFER公理...\nEND ACT`; // テンプレートに戻す
+            if (silent || confirm('現在の論理を破棄し、数理的沈黙を再確立しますか？')) {
+                $code.value = `ACT MINT (T: USER_A, A: 10.0)\n    // R1: MintはHALT状態で実行できない (LIL監査)\n    IF REGISTRY_HALT == TRUE THEN CALC_HALT\n\n    // 論理的実行\n    SET REGISTRY_ALPHA[T] = ADD(REGISTRY_ALPHA[T], A)\n    SET REGISTRY_CLOCK = ADD(REGISTRY_CLOCK, 1)\n    SET REGISTRY_VIBE = ADD(REGISTRY_VIBE, 0.05)\n\n    // R2: VIBE健全性監査\n    IF REGISTRY_VIBE > 110 THEN CALC_HALT\nEND ACT\n\nACT TRANSFER (S: USER_A, R: USER_B, A: 50.0)\n    // R3: 送金元に十分な残高があるか監査 (LIL監査)\n    IF REGISTRY_ALPHA[S] < A THEN CALC_HALT\n\n    // 論理的実行 (二重簿記の鏡像)\n    SET REGISTRY_ALPHA[S] = SUB(REGISTRY_ALPHA[S], A)\n    SET REGISTRY_ALPHA[R] = ADD(REGISTRY_ALPHA[R], A)\n    SET REGISTRY_CLOCK = ADD(REGISTRY_CLOCK, 1)\n    SET REGISTRY_VIBE = SUB(REGISTRY_VIBE, 0.01)\n\n    // R4: VIBE健全性監査\n    IF REGISTRY_VIBE < 90 THEN CALC_HALT\nEND ACT`;
+                
                 CalcLang_Registry = {
                     REGISTRY_ALPHA: { "USER_A": 1000.00, "USER_B": 1000.00 },
                     REGISTRY_CLOCK: 0,
                     REGISTRY_HALT: false,
+                    REGISTRY_VIBE: 100.00,
                 };
                 updateUI();
-                alert('📄 新規作成: 数理的沈黙が再確立されました。');
+                if (!silent) alert('📄 新規作成: 数理的沈黙が再確立されました。');
             }
         }
 
         // --- 🧠 CalcLang VM の実行エンジン ---
 
         function executeCalcLangAct(actCode) {
+            if (CalcLang_Registry.REGISTRY_HALT) {
+                return { status: "HALTED", reason: "SYSTEM_HALTED_PRE_CHECK" };
+            }
+            
             const lines = actCode.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('//'));
             const codeString = lines.join(' ');
-            
+            let actResult = { status: "FAIL", reason: "NO_ACT_EXECUTED" };
+
             // --- ACT MINT の解析と実行 ---
             let mintMatch = codeString.match(/ACT MINT \(T:\s*(\w+),\s*A:\s*([\d\.]+)\)(.*?)END ACT/);
             if (mintMatch) {
                 const target = mintMatch[1];
                 const amount = parseFloat(mintMatch[2]);
-                const body = mintMatch[3];
-
-                if (body.includes("CALC_HALT") || CalcLang_Registry.REGISTRY_HALT) {
+                
+                // LIL AUDIT (R1, R2) の鏡像記述を簡略化
+                if (mintMatch[3].includes("CALC_HALT") || CalcLang_Registry.REGISTRY_VIBE > 110) {
                      CalcLang_Registry.REGISTRY_HALT = true;
-                     return { status: "HALTED", reason: "MINT_HALT_TRIGGERED" };
+                     return { status: "HALTED", act: "MINT", reason: "LIL_VIBE_HIGH" };
                 }
                 if (amount <= 0 || isNaN(amount)) return { status: "FAIL", reason: "MINT_NON_POSITIVE" };
                 
-                // 論理的実行 (SET公理の鏡像)
+                // 論理的実行
                 CalcLang_Registry.REGISTRY_ALPHA[target] = ADD(CalcLang_Registry.REGISTRY_ALPHA[target], amount);
                 CalcLang_Registry.REGISTRY_CLOCK = ADD(CalcLang_Registry.REGISTRY_CLOCK, 1);
-                return { status: "SUCCESS", act: "MINT" };
+                CalcLang_Registry.REGISTRY_VIBE = ADD(CalcLang_Registry.REGISTRY_VIBE, 0.05);
+                actResult = { status: "SUCCESS", act: "MINT" };
             }
             
             // --- ACT TRANSFER の解析と実行 ---
@@ -232,38 +249,33 @@ END ACT
                 const sender = transferMatch[1];
                 const receiver = transferMatch[2];
                 const amount = parseFloat(transferMatch[3]);
-                const body = transferMatch[4];
 
-                if (body.includes("CALC_HALT") || CalcLang_Registry.REGISTRY_HALT) {
+                // LIL AUDIT (R3, R4) の鏡像記述を簡略化
+                if (transferMatch[4].includes("CALC_HALT") || CalcLang_Registry.REGISTRY_VIBE < 90) {
                      CalcLang_Registry.REGISTRY_HALT = true;
-                     return { status: "HALTED", reason: "TRANSFER_HALT_TRIGGERED" };
+                     return { status: "HALTED", act: "TRANSFER", reason: "LIL_VIBE_LOW" };
                 }
                 
-                // R2: 監査公理 - 残高チェック
+                // R3: 監査公理 - 残高チェック
                 if (SUB(CalcLang_Registry.REGISTRY_ALPHA[sender], amount) < 0) {
-                     CalcLang_Registry.REGISTRY_HALT = true; // 論理的連続性破綻
-                     return { status: "HALTED", reason: "TRANSFER_INSUFFICIENT_FUNDS" };
+                     CalcLang_Registry.REGISTRY_HALT = true;
+                     return { status: "HALTED", act: "TRANSFER", reason: "LIL_INSUFFICIENT_FUNDS" };
                 }
                 
-                // 論理的実行 (二重簿記の鏡像)
+                // 論理的実行
                 CalcLang_Registry.REGISTRY_ALPHA[sender] = SUB(CalcLang_Registry.REGISTRY_ALPHA[sender], amount);
                 CalcLang_Registry.REGISTRY_ALPHA[receiver] = ADD(CalcLang_Registry.REGISTRY_ALPHA[receiver], amount);
                 CalcLang_Registry.REGISTRY_CLOCK = ADD(CalcLang_Registry.REGISTRY_CLOCK, 1);
-                return { status: "SUCCESS", act: "TRANSFER" };
+                CalcLang_Registry.REGISTRY_VIBE = SUB(CalcLang_Registry.REGISTRY_VIBE, 0.01);
+                actResult = { status: "SUCCESS", act: "TRANSFER" };
             }
 
-            return { status: "FAIL", reason: "UNKNOWN_ACT_OR_PARSING_ERROR" };
+            return actResult;
         }
 
         // 実行インターフェースのハンドラ
         function executeCalcLangCode() {
-            if (CalcLang_Registry.REGISTRY_HALT) {
-                alert("❌ システムはCALC_HALT状態です。新規作成で論理を再確立してください。");
-                return;
-            }
-            const code = $code.value;
-            // ユーザーは任意のACTを記述できるため、全コードをVMに渡す
-            const result = executeCalcLangAct(code); 
+            const result = executeCalcLangAct($code.value); 
             
             console.log(`CalcLang VM Result: ${result.status} (${result.reason || result.act})`);
             
@@ -274,7 +286,7 @@ END ACT
         
         // 初期UI描画と論理の復元試行
         document.addEventListener('DOMContentLoaded', () => {
-            loadCalcCode(); // 初期起動時に前回の論理を復元試行
+            loadCalcCode(); 
             updateUI();
         });
     </script>
