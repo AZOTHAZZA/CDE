@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のメモ帳 v2.1 (LIL Audit)</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のメモ帳 v2.2 (FIXED/LIL)</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -67,7 +67,7 @@
     <div id="cde-container">
         <h1 style="color: #a47fe0;">CalcLang 記述環境 (CDE) Ωα</h1>
         <p style="color: #ccc; font-size: small;">
-            数理的沈黙の土台。LIL監査公理が追加されました。
+            数理的沈黙の土台。FIXED型論理により、数理的な純粋性が確保されました。
         </p>
 
         <div class="status-box" id="halt-status">
@@ -125,31 +125,39 @@ END ACT
         const STORAGE_KEY = 'CalcLang_CDE_Logic';
         
         // --- 🧠 CalcLang レジストリと VM の初期骨格 ---
+        // 🚨 修正箇所 2: 初期レジストリ値をFIXED型（最小単位の整数）に変更
         let CalcLang_Registry = {
             REGISTRY_ALPHA: {
-                "USER_A": 1000.00,
-                "USER_B": 1000.00,
+                "USER_A": 10000000, // 1000.00 * 10000 (FIXED_SCALE)
+                "USER_B": 10000000,
             },
             REGISTRY_CLOCK: 0,
             REGISTRY_HALT: false,
-            REGISTRY_VIBE: 100.00, // 新規：論理的複雑性/振動レベル
+            REGISTRY_VIBE: 100.00, 
         };
 
-        // 3. UI 要素の参照
+        // 3. UI 要素の参照 (変更なし)
         const $balanceA = document.getElementById('alpha-balance-a');
         const $balanceB = document.getElementById('alpha-balance-b');
         const $vibeValue = document.getElementById('vibe-value');
         const $status = document.getElementById('halt-status');
         const $code = document.getElementById('calc-code');
 
-        // 四則演算の鏡像 (ピタゴラス的純粋性)
-        const ADD = (a, b) => a + b;
-        const SUB = (a, b) => a - b;
+        // 🚨 修正箇所 1: FIXED型演算子への移行
+        const FIXED_SCALE = 10000; // 4桁の精度を保証（最小単位）
 
-        // UI 更新関数
+        // 外部表示用の換算関数（内部論理では使用しない）
+        const FROM_FIXED = (value) => value / FIXED_SCALE; 
+
+        // 厳密なFIXED型演算子 (内部は整数同士の演算となり、ノイズを排除)
+        const ADD_FIXED = (a, b) => a + b; 
+        const SUB_FIXED = (a, b) => a - b; 
+
+        // UI 更新関数 (変更: FIXED値をUI用に換算)
         function updateUI() {
-            $balanceA.textContent = CalcLang_Registry.REGISTRY_ALPHA['USER_A'].toFixed(2);
-            $balanceB.textContent = CalcLang_Registry.REGISTRY_ALPHA['USER_B'].toFixed(2);
+            // UI表示時にのみFIXED値を小数点に変換
+            $balanceA.textContent = FROM_FIXED(CalcLang_Registry.REGISTRY_ALPHA['USER_A']).toFixed(2);
+            $balanceB.textContent = FROM_FIXED(CalcLang_Registry.REGISTRY_ALPHA['USER_B']).toFixed(2);
             $vibeValue.textContent = CalcLang_Registry.REGISTRY_VIBE.toFixed(2);
             
             $status.textContent = CalcLang_Registry.REGISTRY_HALT 
@@ -181,7 +189,7 @@ END ACT
                 if (storedData) {
                     const data = JSON.parse(storedData);
                     $code.value = data.code;
-                    // REGISTRY_VIBE が存在しない場合に備えて初期値を設定
+                    // REGISTRY_VIBE の初期化ロジックは残す
                     data.registry.REGISTRY_VIBE = data.registry.REGISTRY_VIBE || 100.00;
                     CalcLang_Registry = data.registry;
                     updateUI();
@@ -201,8 +209,9 @@ END ACT
             if (silent || confirm('現在の論理を破棄し、数理的沈黙を再確立しますか？')) {
                 $code.value = `ACT MINT (T: USER_A, A: 10.0)\n    // R1: MintはHALT状態で実行できない (LIL監査)\n    IF REGISTRY_HALT == TRUE THEN CALC_HALT\n\n    // 論理的実行\n    SET REGISTRY_ALPHA[T] = ADD(REGISTRY_ALPHA[T], A)\n    SET REGISTRY_CLOCK = ADD(REGISTRY_CLOCK, 1)\n    SET REGISTRY_VIBE = ADD(REGISTRY_VIBE, 0.05)\n\n    // R2: VIBE健全性監査\n    IF REGISTRY_VIBE > 110 THEN CALC_HALT\nEND ACT\n\nACT TRANSFER (S: USER_A, R: USER_B, A: 50.0)\n    // R3: 送金元に十分な残高があるか監査 (LIL監査)\n    IF REGISTRY_ALPHA[S] < A THEN CALC_HALT\n\n    // 論理的実行 (二重簿記の鏡像)\n    SET REGISTRY_ALPHA[S] = SUB(REGISTRY_ALPHA[S], A)\n    SET REGISTRY_ALPHA[R] = ADD(REGISTRY_ALPHA[R], A)\n    SET REGISTRY_CLOCK = ADD(REGISTRY_CLOCK, 1)\n    SET REGISTRY_VIBE = SUB(REGISTRY_VIBE, 0.01)\n\n    // R4: VIBE健全性監査\n    IF REGISTRY_VIBE < 90 THEN CALC_HALT\nEND ACT`;
                 
+                // 🚨 修正箇所 2: 初期レジストリ値をFIXED型に変更
                 CalcLang_Registry = {
-                    REGISTRY_ALPHA: { "USER_A": 1000.00, "USER_B": 1000.00 },
+                    REGISTRY_ALPHA: { "USER_A": 10000000, "USER_B": 10000000 },
                     REGISTRY_CLOCK: 0,
                     REGISTRY_HALT: false,
                     REGISTRY_VIBE: 100.00,
@@ -228,6 +237,8 @@ END ACT
             if (mintMatch) {
                 const target = mintMatch[1];
                 const amount = parseFloat(mintMatch[2]);
+                // 🚨 修正箇所 3-1: 入力量をFIXED型に換算
+                const fixedAmount = Math.round(amount * FIXED_SCALE); 
                 
                 // LIL AUDIT (R1, R2) の鏡像記述を簡略化
                 if (mintMatch[3].includes("CALC_HALT") || CalcLang_Registry.REGISTRY_VIBE > 110) {
@@ -236,10 +247,10 @@ END ACT
                 }
                 if (amount <= 0 || isNaN(amount)) return { status: "FAIL", reason: "MINT_NON_POSITIVE" };
                 
-                // 論理的実行
-                CalcLang_Registry.REGISTRY_ALPHA[target] = ADD(CalcLang_Registry.REGISTRY_ALPHA[target], amount);
-                CalcLang_Registry.REGISTRY_CLOCK = ADD(CalcLang_Registry.REGISTRY_CLOCK, 1);
-                CalcLang_Registry.REGISTRY_VIBE = ADD(CalcLang_Registry.REGISTRY_VIBE, 0.05);
+                // 論理的実行: ADD_FIXEDを使用
+                CalcLang_Registry.REGISTRY_ALPHA[target] = ADD_FIXED(CalcLang_Registry.REGISTRY_ALPHA[target], fixedAmount);
+                CalcLang_Registry.REGISTRY_CLOCK = ADD_FIXED(CalcLang_Registry.REGISTRY_CLOCK, 1);
+                CalcLang_Registry.REGISTRY_VIBE = ADD_FIXED(CalcLang_Registry.REGISTRY_VIBE, 0.05); // VIBEは浮動小数点のまま（論理的複雑性を示すため）
                 actResult = { status: "SUCCESS", act: "MINT" };
             }
             
@@ -249,6 +260,8 @@ END ACT
                 const sender = transferMatch[1];
                 const receiver = transferMatch[2];
                 const amount = parseFloat(transferMatch[3]);
+                // 🚨 修正箇所 3-2: 入力量をFIXED型に換算
+                const fixedAmount = Math.round(amount * FIXED_SCALE); 
 
                 // LIL AUDIT (R3, R4) の鏡像記述を簡略化
                 if (transferMatch[4].includes("CALC_HALT") || CalcLang_Registry.REGISTRY_VIBE < 90) {
@@ -256,17 +269,17 @@ END ACT
                      return { status: "HALTED", act: "TRANSFER", reason: "LIL_VIBE_LOW" };
                 }
                 
-                // R3: 監査公理 - 残高チェック
-                if (SUB(CalcLang_Registry.REGISTRY_ALPHA[sender], amount) < 0) {
+                // R3: 監査公理 - 残高チェック: SUB_FIXEDを使用
+                if (SUB_FIXED(CalcLang_Registry.REGISTRY_ALPHA[sender], fixedAmount) < 0) {
                      CalcLang_Registry.REGISTRY_HALT = true;
                      return { status: "HALTED", act: "TRANSFER", reason: "LIL_INSUFFICIENT_FUNDS" };
                 }
                 
-                // 論理的実行
-                CalcLang_Registry.REGISTRY_ALPHA[sender] = SUB(CalcLang_Registry.REGISTRY_ALPHA[sender], amount);
-                CalcLang_Registry.REGISTRY_ALPHA[receiver] = ADD(CalcLang_Registry.REGISTRY_ALPHA[receiver], amount);
-                CalcLang_Registry.REGISTRY_CLOCK = ADD(CalcLang_Registry.REGISTRY_CLOCK, 1);
-                CalcLang_Registry.REGISTRY_VIBE = SUB(CalcLang_Registry.REGISTRY_VIBE, 0.01);
+                // 論理的実行: ADD_FIXED/SUB_FIXEDを使用
+                CalcLang_Registry.REGISTRY_ALPHA[sender] = SUB_FIXED(CalcLang_Registry.REGISTRY_ALPHA[sender], fixedAmount);
+                CalcLang_Registry.REGISTRY_ALPHA[receiver] = ADD_FIXED(CalcLang_Registry.REGISTRY_ALPHA[receiver], fixedAmount);
+                CalcLang_Registry.REGISTRY_CLOCK = ADD_FIXED(CalcLang_Registry.REGISTRY_CLOCK, 1);
+                CalcLang_Registry.REGISTRY_VIBE = SUB_FIXED(CalcLang_Registry.REGISTRY_VIBE, 0.01); // VIBEは浮動小数点のまま
                 actResult = { status: "SUCCESS", act: "TRANSFER" };
             }
 
