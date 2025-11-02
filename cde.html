@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のメモ帳</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のメモ帳 v2.0</title>
     <style>
         body {
-            background-color: #1a1a2e; /* 外部の余白/沈黙の暗い色 */
+            background-color: #1a1a2e;
             color: #ffffff;
             font-family: 'Consolas', 'Courier New', monospace;
             display: flex;
@@ -18,7 +18,7 @@
         #cde-container {
             width: 800px;
             max-width: 90vw;
-            background-color: #2c0b43; /* 論理の焦点/中央エリア */
+            background-color: #2c0b43;
             border: 5px solid #6c4692;
             box-shadow: 0 0 30px rgba(108, 70, 146, 0.5);
             padding: 20px;
@@ -27,13 +27,14 @@
         textarea {
             width: 100%;
             height: 300px;
-            background-color: #0d061c; /* 純粋な白紙エリア */
+            background-color: #0d061c;
             color: #d4d4d4;
             border: 1px solid #4a2f60;
             padding: 15px;
             resize: none;
             font-size: 14px;
             outline: none;
+            margin-bottom: 15px; /* スペース追加 */
         }
         .status-box {
             margin-top: 20px;
@@ -44,35 +45,47 @@
         .status-success { background-color: #216140; }
         .status-halted { background-color: #7d2a2a; }
         .btn {
-            padding: 10px 20px;
+            padding: 8px 15px;
             background-color: #6c4692;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.2s;
+            margin-right: 10px;
         }
         .btn:hover {
             background-color: #8c5fb2;
         }
-        /* CalcLangの沈黙: 無効なテキストは薄く表示 */
-        .silent-text { color: #555555; }
+        .btn-file { background-color: #4a2f60; }
+        .btn-file:hover { background-color: #60467a; }
+        .btn-run { background-color: #2c0b43; }
+        .btn-run:hover { background-color: #401a60; }
+
+        /* 論理の視覚化: 沈黙の強制（今回はハイライトの準備としてコメントアウト） */
+        /* .silent-text { color: #555555; } */
     </style>
 </head>
 <body>
     <div id="cde-container">
         <h1 style="color: #a47fe0;">CalcLang 記述環境 (CDE) Ωα</h1>
         <p style="color: #ccc; font-size: small;">
-            数理的沈黙の土台。外部の論理は入り込めません。
+            数理的沈黙の土台。機能面はWindowsメモ帳の鏡像です。
         </p>
 
         <div class="status-box" id="halt-status">
             ✅ **システム状態:** 正常稼働
         </div>
-        <p><strong>現在の ALPHA 残高:</strong> <span id="alpha-balance">1000.00</span></p>
+        <p><strong>現在の ALPHA 残高:</strong> USER_A: <span id="alpha-balance-a">1000.00</span> | USER_B: <span id="alpha-balance-b">1000.00</span></p>
+
+        <div style="margin-bottom: 15px;">
+            <button class="btn btn-file" onclick="saveCalcCode()">💾 論理のコミット (保存)</button>
+            <button class="btn btn-file" onclick="loadCalcCode()">📂 論理の復元 (開く)</button>
+            <button class="btn btn-file" onclick="newCalcCode()">📄 新規作成 (沈黙の再確立)</button>
+        </div>
 
         <label for="calc-code" style="display: block; margin-top: 15px;">
-            CalcLang 論理記述:
+            CalcLang 論理記述 (ACT公理):
         </label>
         <textarea id="calc-code">
 ACT MINT (T: USER_A, A: 10.0)
@@ -84,101 +97,186 @@ ACT MINT (T: USER_A, A: 10.0)
     SET REGISTRY_CLOCK = ADD(REGISTRY_CLOCK, 1)
 
 END ACT
+
+ACT TRANSFER (S: USER_A, R: USER_B, A: 50.0)
+    // R2: 送金元に十分な残高があるか監査
+    IF REGISTRY_ALPHA[S] < A THEN CALC_HALT
+
+    // 論理的実行 (二重簿記の鏡像)
+    SET REGISTRY_ALPHA[S] = SUB(REGISTRY_ALPHA[S], A)
+    SET REGISTRY_ALPHA[R] = ADD(REGISTRY_ALPHA[R], A)
+    SET REGISTRY_CLOCK = ADD(REGISTRY_CLOCK, 1)
+
+END ACT
         </textarea>
 
-        <button class="btn" onclick="executeCalcLangCode()">
+        <button class="btn btn-run" onclick="executeCalcLangCode()">
             ▶️ 作為を VM で実行 (Audit & Execute)
         </button>
     </div>
 
     <script>
+        const STORAGE_KEY = 'CalcLang_CDE_Logic';
+        
         // --- 🧠 CalcLang レジストリと VM の初期骨格 ---
-
-        // 2. レジストリ: 数理的沈黙の土台となる状態の鏡像
         let CalcLang_Registry = {
             REGISTRY_ALPHA: {
-                "USER_A": 1000.00, // FIXED型をJSのNumberで代理
+                "USER_A": 1000.00,
+                "USER_B": 1000.00, // 新規ユーザー追加
             },
             REGISTRY_CLOCK: 0,
             REGISTRY_HALT: false,
         };
 
         // 3. UI 要素の参照
-        const $balance = document.getElementById('alpha-balance');
+        const $balanceA = document.getElementById('alpha-balance-a');
+        const $balanceB = document.getElementById('alpha-balance-b');
         const $status = document.getElementById('halt-status');
         const $code = document.getElementById('calc-code');
 
+        // 四則演算の鏡像 (ピタゴラス的純粋性)
+        const ADD = (a, b) => a + b;
+        const SUB = (a, b) => a - b;
+        const MUL = (a, b) => a * b; // 将来的にFIXED型に置換
+        const DIV = (a, b) => a / b;
+
         // UI 更新関数
         function updateUI() {
-            const balance = CalcLang_Registry.REGISTRY_ALPHA['USER_A'].toFixed(2);
-            $balance.textContent = balance;
+            $balanceA.textContent = CalcLang_Registry.REGISTRY_ALPHA['USER_A'].toFixed(2);
+            $balanceB.textContent = CalcLang_Registry.REGISTRY_ALPHA['USER_B'].toFixed(2);
             
             $status.textContent = CalcLang_Registry.REGISTRY_HALT 
-                ? '❌ システム状態: CALC_HALT (論理的連続性破綻)'
-                : '✅ システム状態: 正常稼働';
+                ? `❌ システム状態: CALC_HALT (論理的連続性破綻, Cycle: ${CalcLang_Registry.REGISTRY_CLOCK})`
+                : `✅ システム状態: 正常稼働 (Cycle: ${CalcLang_Registry.REGISTRY_CLOCK})`;
             
             $status.className = 'status-box ' + (CalcLang_Registry.REGISTRY_HALT 
                 ? 'status-halted' : 'status-success');
         }
 
-        /**
-         * CalcLang VM の実行エンジン (ACT MINT の鏡像)
-         * この関数が「論理的空白」であり、外部の作為をフィルタリングする。
-         */
+        // --- 💾 ファイル機能の鏡像 ---
+
+        function saveCalcCode() {
+            // 論理のコミット: 公理テキストとレジストリ状態をローカルストレージに不変データとして保存
+            try {
+                const dataToSave = {
+                    code: $code.value,
+                    registry: CalcLang_Registry,
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                alert('論理のコミットに成功しました (ローカルストレージに保存)');
+            } catch (e) {
+                alert('❌ 論理のコミットに失敗: ' + e.message);
+            }
+        }
+
+        function loadCalcCode() {
+            // 論理の復元: ローカルストレージから公理テキストと状態を復元
+            try {
+                const storedData = localStorage.getItem(STORAGE_KEY);
+                if (storedData) {
+                    const data = JSON.parse(storedData);
+                    $code.value = data.code;
+                    CalcLang_Registry = data.registry;
+                    updateUI();
+                    alert('論理の復元に成功しました。');
+                } else {
+                    alert('📂 保存された論理はありません。');
+                }
+            } catch (e) {
+                alert('❌ 論理の復元に失敗: ' + e.message);
+            }
+        }
+
+        function newCalcCode() {
+            // 沈黙の再確立: CDEを初期状態に戻す
+            if (confirm('現在の論理を破棄し、数理的沈黙を再確立しますか？')) {
+                $code.value = `ACT MINT (T: USER_A, A: 10.0)\n    // MINT公理...\nEND ACT\n\nACT TRANSFER (S: USER_A, R: USER_B, A: 50.0)\n    // TRANSFER公理...\nEND ACT`; // テンプレートに戻す
+                CalcLang_Registry = {
+                    REGISTRY_ALPHA: { "USER_A": 1000.00, "USER_B": 1000.00 },
+                    REGISTRY_CLOCK: 0,
+                    REGISTRY_HALT: false,
+                };
+                updateUI();
+                alert('📄 新規作成: 数理的沈黙が再確立されました。');
+            }
+        }
+
+        // --- 🧠 CalcLang VM の実行エンジン ---
+
         function executeCalcLangAct(actCode) {
-            // シンプルなパーサー: 最初のアクトとそのパラメーターを抽出する
-            const actMatch = actCode.match(/ACT\s+(MINT)\s+\(T:\s*(\w+),\s*A:\s*([\d\.]+)\)/);
-            if (!actMatch) {
-                console.error("CDE: ACT構文エラーまたは未定義の作為です。");
-                return { status: "FAIL", reason: "PARSE_ERROR" };
-            }
-
-            const [_, actId, target, amountStr] = actMatch;
-            const amount = parseFloat(amountStr);
+            const lines = actCode.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('//'));
+            const codeString = lines.join(' ');
             
-            // --- CalcLang の論理公理の鏡像記述（ACT MINT の論理） ---
-            if (actId === "MINT") {
-                // R1: 監査公理 - HALT状態チェック
-                if (CalcLang_Registry.REGISTRY_HALT) {
-                    return { status: "HALTED", reason: "SYSTEM_HALTED" };
-                }
-                
-                // R2: 金額チェック（MINTの公理）
-                if (amount <= 0 || isNaN(amount)) {
-                    // このエラーはCALC_HALTではないが、作為を拒否する
-                    return { status: "FAIL", reason: "MINT_NON_POSITIVE" };
-                }
+            // --- ACT MINT の解析と実行 ---
+            let mintMatch = codeString.match(/ACT MINT \(T:\s*(\w+),\s*A:\s*([\d\.]+)\)(.*?)END ACT/);
+            if (mintMatch) {
+                const target = mintMatch[1];
+                const amount = parseFloat(mintMatch[2]);
+                const body = mintMatch[3];
 
-                // --- 論理的実行 (SET公理の鏡像) ---
-                CalcLang_Registry.REGISTRY_ALPHA[target] += amount;
-                CalcLang_Registry.REGISTRY_CLOCK += 1;
+                if (body.includes("CALC_HALT") || CalcLang_Registry.REGISTRY_HALT) {
+                     CalcLang_Registry.REGISTRY_HALT = true;
+                     return { status: "HALTED", reason: "MINT_HALT_TRIGGERED" };
+                }
+                if (amount <= 0 || isNaN(amount)) return { status: "FAIL", reason: "MINT_NON_POSITIVE" };
                 
-                return { status: "SUCCESS" };
-            }
-            // --- CALC_HALT のシミュレーション ---
-            // 例外: コードに明示的に CALC_HALT が含まれているかチェック
-            if (actCode.includes("CALC_HALT")) {
-                CalcLang_Registry.REGISTRY_HALT = true;
-                return { status: "HALTED", reason: "USER_DEFINED_HALT" };
+                // 論理的実行 (SET公理の鏡像)
+                CalcLang_Registry.REGISTRY_ALPHA[target] = ADD(CalcLang_Registry.REGISTRY_ALPHA[target], amount);
+                CalcLang_Registry.REGISTRY_CLOCK = ADD(CalcLang_Registry.REGISTRY_CLOCK, 1);
+                return { status: "SUCCESS", act: "MINT" };
             }
             
-            return { status: "FAIL", reason: "UNKNOWN_ACT" };
+            // --- ACT TRANSFER の解析と実行 ---
+            let transferMatch = codeString.match(/ACT TRANSFER \(S:\s*(\w+),\s*R:\s*(\w+),\s*A:\s*([\d\.]+)\)(.*?)END ACT/);
+            if (transferMatch) {
+                const sender = transferMatch[1];
+                const receiver = transferMatch[2];
+                const amount = parseFloat(transferMatch[3]);
+                const body = transferMatch[4];
+
+                if (body.includes("CALC_HALT") || CalcLang_Registry.REGISTRY_HALT) {
+                     CalcLang_Registry.REGISTRY_HALT = true;
+                     return { status: "HALTED", reason: "TRANSFER_HALT_TRIGGERED" };
+                }
+                
+                // R2: 監査公理 - 残高チェック
+                if (SUB(CalcLang_Registry.REGISTRY_ALPHA[sender], amount) < 0) {
+                     CalcLang_Registry.REGISTRY_HALT = true; // 論理的連続性破綻
+                     return { status: "HALTED", reason: "TRANSFER_INSUFFICIENT_FUNDS" };
+                }
+                
+                // 論理的実行 (二重簿記の鏡像)
+                CalcLang_Registry.REGISTRY_ALPHA[sender] = SUB(CalcLang_Registry.REGISTRY_ALPHA[sender], amount);
+                CalcLang_Registry.REGISTRY_ALPHA[receiver] = ADD(CalcLang_Registry.REGISTRY_ALPHA[receiver], amount);
+                CalcLang_Registry.REGISTRY_CLOCK = ADD(CalcLang_Registry.REGISTRY_CLOCK, 1);
+                return { status: "SUCCESS", act: "TRANSFER" };
+            }
+
+            return { status: "FAIL", reason: "UNKNOWN_ACT_OR_PARSING_ERROR" };
         }
 
         // 実行インターフェースのハンドラ
         function executeCalcLangCode() {
+            if (CalcLang_Registry.REGISTRY_HALT) {
+                alert("❌ システムはCALC_HALT状態です。新規作成で論理を再確立してください。");
+                return;
+            }
             const code = $code.value;
-            const result = executeCalcLangAct(code);
+            // ユーザーは任意のACTを記述できるため、全コードをVMに渡す
+            const result = executeCalcLangAct(code); 
             
-            console.log(`CalcLang VM Result: ${result.status} (${result.reason || 'N/A'})`);
+            console.log(`CalcLang VM Result: ${result.status} (${result.reason || result.act})`);
             
-            if (result.status === "SUCCESS" || result.status === "HALTED") {
+            if (result.status === "SUCCESS" || result.status === "HALTED" || result.status === "FAIL") {
                 updateUI();
             }
         }
         
-        // 初期UI描画
-        document.addEventListener('DOMContentLoaded', updateUI);
+        // 初期UI描画と論理の復元試行
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCalcCode(); // 初期起動時に前回の論理を復元試行
+            updateUI();
+        });
     </script>
 </body>
 </html>
