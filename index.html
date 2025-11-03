@@ -5,13 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CalcLang 記述環境 (CDE) - 浮上シェル (L1)</title>
     <style>
-        /* スタイルは簡潔化のため省略しますが、以前のものを適用してください */
-        body { /* ... */ }
-        #cde-container { /* ... */ }
-        textarea { /* ... */ }
-        .btn { /* ... */ }
-        #calchost-output { /* ... */ }
-        #audit-log-output { /* ... */ }
+        /* スタイルは簡潔化のため最小限に記述します。必要に応じて以前の完全なスタイルを適用してください。 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        #cde-container, #calchost-output {
+            background-color: #252526;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            background-color: #333333;
+            color: #d4d4d4;
+            border: 1px solid #555555;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            margin-top: 10px;
+            resize: vertical;
+        }
+        .btn {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #005f99;
+        }
+        #audit-log-output {
+            background-color: #1c1c1c;
+            height: 100px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            padding: 10px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -31,12 +80,13 @@
             **L2/L3/L4 コアロジック (ユーザーのローカルデータ)** + **ACT公理**を入力:
         </label>
         <textarea id="calc-code">
-// ここにユーザーがローカルに持つL2/L3/L4のコード（CalcOSの定義）を貼り付け、
-// その直後に実行したいACT公理を記述します。
-// 例:
-// const CalcOS = (function() { ...L2/L3/L4ロジック... })();
-// CalcOS.executeLogic = function() { ... }
-// ...ACT公理...
+// 1. まず、L2/L3/L4 統合コアロジック定義を全て貼り付けます（const CalcOS = (function() {...})()）。
+
+// 2. その直後に、このセパレータを記述します。
+// --- ACT公理 (ユーザー入力) ---
+
+// 3. この下に、実行したい ACT公理 を記述します。
+// 例: ACT LET ( K: "VAR_1", V: 100 ) END ACT
         </textarea>
         
         <button class="btn btn-run" onclick="executeLocalLogic()">
@@ -57,44 +107,57 @@
 
     <script>
         function executeLocalLogic() {
-            const code = document.getElementById('calc-code').value;
-            try {
-                // VMのメモリ空間で入力された文字列を直接プログラムとして実行
-                // これにより、L2/L3/L4の論理がローカルに浮上する
-                eval(code); 
-                
-                // L2/L3/L4のロジックが実行され、CalcOSというグローバルオブジェクトが定義されたと仮定し、
-                // その後、CalcOSの実行ロジックを呼び出す必要があります。
-                // 
-                // しかし、この方法だと、コアロジックとACT公理を分離して入力できないため、
-                // コアロジックの定義（L2/L3/L4）とACT公理（ユーザーの入力）を分けて実行する必要があります。
-                
-                // --- 暫定的な実行ロジック（L2/L3/L4のロジックがCalcOSという関数を定義することを前提） ---
-                
-                // L2/L3/L4の定義部分を実行
-                const logicPart = code.substring(0, code.indexOf('// ---')); // ACT公理の手前まで
-                eval(logicPart);
+            const fullCode = document.getElementById('calc-code').value;
+            
+            // --- 1. L2/L3/L4のロジックとACT公理を分離 ---
+            const separator = "// --- ACT公理 (ユーザー入力) ---";
+            const parts = fullCode.split(separator);
+            
+            const coreLogic = parts[0]; 
+            const actCode = parts[1] ? parts[1].trim() : ""; // ACT公理部分
 
-                // ACT公理の部分を実行
-                const actCodePart = code.substring(code.indexOf('// ---'));
+            // エラーログ初期化
+            const $auditLogOutput = document.getElementById('audit-log-output');
+            
+            try {
+                // --- 2. L2/L3/L4のコアロジックをVMのグローバルスコープに浮上させる ---
+                // new Function() を使用して、コードをグローバルスコープで実行し、L2/L3/L4を浮上させる
+                const floatingFunction = new Function(coreLogic);
+                floatingFunction(); // これでグローバルに CalcOS が定義されることを期待する
+                
+                // --- 3. 浮上確認とACT公理の実行 ---
                 if (typeof CalcOS !== 'undefined' && CalcOS.executeAct) {
-                    CalcOS.executeAct(actCodePart);
-                    CalcOS.updateUI(); // L4に組み込まれているはずのUI更新関数を呼び出し
+                    // 実行前にレジストリを初期化
+                    CalcOS.init(); 
+                    
+                    // ACT公理を実行
+                    const result = CalcOS.executeAct(actCode);
+                    CalcOS.updateUI(); 
+                    
+                    // L1の監査ログに成功を記録
+                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: yellowgreen;">[SYSTEM SUCCESS] L2/L3/L4 コアロジックの浮上と実行が完了しました。</div>`;
+                    
                 } else {
-                    alert("L2/L3/L4のロジックが正常に浮上できませんでした (CalcOS未定義)。");
+                    // CalcOSがグローバルに見つからない場合
+                    throw new Error("L2/L3/L4ロジックの実行は成功したが、CalcOSオブジェクトがグローバルに見つかりません。");
                 }
 
             } catch (e) {
-                const $auditLogOutput = document.getElementById('audit-log-output');
-                $auditLogOutput.innerHTML += `<div class="log-entry" style="color: red;">[SYSTEM ERROR] L1浮上失敗: ${e.message}</div>`;
+                // L1の監査ログに失敗を記録
+                if ($auditLogOutput) {
+                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: red;">[SYSTEM ERROR] L1浮上失敗: ${e.message}</div>`;
+                }
                 console.error("L1浮上失敗:", e);
+                // VMのエラーがAudit Logに反映されることを期待
             }
         }
         
         // 起動時にUI要素が確実に存在することを確認
         window.onload = function() {
             const $auditLogOutput = document.getElementById('audit-log-output');
-            $auditLogOutput.innerHTML = `<div class="log-entry" style="color: yellowgreen;">[C:0] [INIT] L1 浮上シェルが起動しました。L2/L3/L4の注入を待機します。</div>`;
+            if ($auditLogOutput) {
+                $auditLogOutput.innerHTML = `<div class="log-entry" style="color: yellowgreen;">[C:0] [INIT] L1 浮上シェルが起動しました。L2/L3/L4の注入を待機します。</div>`;
+            }
         };
     </script>
 </body>
