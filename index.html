@@ -2,174 +2,447 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CalcLang 記述環境 (CDE) - 浮上シェル (L1)</title>
     <style>
-        /* スタイルは簡潔化のため最小限に記述します。 */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #1e1e1e;
-            color: #d4d4d4;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        #cde-container, #calchost-output {
-            background-color: #252526;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-        textarea {
-            width: 100%;
-            height: 300px;
-            background-color: #333333;
-            color: #d4d4d4;
-            border: 1px solid #555555;
-            padding: 10px;
-            box-sizing: border-box;
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 14px;
-            margin-top: 10px;
-            resize: vertical;
-        }
-        .btn {
-            background-color: #007acc;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin-top: 10px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #005f99;
-        }
-        #audit-log-output {
-            background-color: #1c1c1c;
-            height: 100px;
-            overflow-y: auto;
-            border: 1px solid #444;
-            padding: 10px;
-            font-size: 12px;
-            margin-top: 10px;
-        }
+        body { font-family: monospace; background-color: #1e1e1e; color: #d4d4d4; margin: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        h1, h2, h3 { color: #569cd6; }
+        textarea { width: 100%; height: 200px; background-color: #252526; color: #d4d4d4; border: 1px solid #3c3c3c; padding: 10px; box-sizing: border-box; resize: vertical; }
+        button { padding: 10px 20px; background-color: #007acc; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #005f99; }
+        .registry-panel { background-color: #252526; padding: 15px; border: 1px solid #3c3c3c; margin-bottom: 20px; }
+        .log-entry { font-size: 0.9em; padding: 2px 0; border-bottom: 1px dotted #3c3c3c; }
+        #calchost-content { min-height: 100px; background-color: #000000; padding: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div id="cde-container">
-        <h1 style="color: #ff9900;">CalcLang CDE 浮上シェル (L1)</h1>
-        <p style="color: #ccc; font-size: small;">
-            **私的でプライベートな沈黙のコアロジック (L2/L3/L4)** を入力し、ローカル空間に浮上させます。
-        </p>
 
-        <p>
-            <strong>REGISTRY_CYCLE:</strong> <span id="cycle-value">0</span>
-            <br>
-            <strong>REGISTRY_VARS:</strong> <span id="vars-value" style="font-size: small;">{}</span>
-        </p>
+<div class="container">
+    <h1>CalcLang CDE 浮上シェル (L1)</h1>
+    <p>**私的でプライベートな沈黙のコアロジック (L2/L3/L4)** を入力し、ローカル空間に浮上させます。</p>
 
-        <label for="calc-code" style="display: block; margin-top: 15px;">
-            **L2/L3/L4 コアロジック (ユーザーのローカルデータ)** + **ACT公理**を入力:
-        </label>
-        <textarea id="calc-code">
-// 1. まず、L2/L3/L4 統合コアロジック定義を全て貼り付けます（window.CalcOS = (function() {...})()）。
-
-// 2. その直後に、このセパレータを記述します。（非常に重要）
-// --- ACT公理 (ユーザー入力) ---
-
-// 3. この下に、実行したい ACT公理 を記述します。
-// 例: ACT LET ( K: "VAR_1", V: 100 ) END ACT
-        </textarea>
-        
-        <button class="btn btn-run" onclick="executeLocalLogic()">
-            ▶️ ローカルで実行 (Execute in VM)
-        </button>
-        
-        <h3 style="color: #ff5757; margin-top: 20px;">📜 Calc-Audit Log (監査記録)</h3>
-        <div id="audit-log-output">
-        </div>
+    <div class="registry-panel">
+        <strong>REGISTRY_CYCLE:</strong> <span id="cycle-value">0</span><br>
+        <strong>REGISTRY_VARS:</strong> <span id="vars-value">{}</span>
     </div>
+
+    <h3>L2/L3/L4 コアロジック (ユーザーのローカルデータ)</h3>
+    <p>// 1. CalcOSオブジェクトをwindowグローバルスコープに明示的に浮上させる。</p>
     
-    <div id="calchost-output">
-        <h2>🌐 CalcHost - 論理的描画領域 (浮上待機中)</h2>
-        <div id="calchost-content">
-            L1が提供する描画エリアです。L4のACT DEPLOY公理によって支配されるのを待ちます。
-        </div>
-    </div>
+    <script id="calc-core-logic">
+// --- L2/L3/L4 統合コアロジック定義 (グローバル浮上 & L3堅牢化完了修正) ---
+// CalcOSオブジェクトをwindowグローバルスコープに明示的に浮上させる。
+window.CalcOS = (function() {
+    let REGISTRY;
+    const DEFAULT_REGISTRY = {
+        REGISTRY_CYCLE: 0, 
+        REGISTRY_VARS: {}, 
+        REGISTRY_HOST_S_EXPR: null, 
+        REGISTRY_AUDIT_LOG: [],
+    };
+    // 比較演算子の定義。厳格な比較を維持。
+    const COMPARISON_OPS = {
+        '>': (a, b) => a > b, '<': (a, b) => a < b, '>=': (a, b) => a >= b,
+        '<=': (a, b) => a <= b, '==': (a, b) => a === b, '!=': (a, b) => b !== a,
+    };
 
-    <script>
-        function executeLocalLogic() {
-            const fullCode = document.getElementById('calc-code').value;
-            
-            // --- 1. L2/L3/L4のロジックとACT公理を分離 ---
-            const separator = "// --- ACT公理 (ユーザー入力) ---";
-            const parts = fullCode.split(separator);
-            
-            const coreLogic = parts[0]; 
-            const actCode = parts[1] ? parts[1].trim() : ""; // ACT公理部分
+    // UI要素の参照 (L1のグローバル変数に依存 - 最小限の依存)
+    const $code = document.getElementById('calc-code');
+    const $cycleValue = document.getElementById('cycle-value');
+    const $varsValue = document.getElementById('vars-value');
+    const $calcHostContent = document.getElementById('calchost-content');
+    const $auditLogOutput = document.getElementById('audit-log-output');
 
-            // エラーログ初期化
-            const $auditLogOutput = document.getElementById('audit-log-output');
-            
-            // --- デバッグログの追加 ---
-            if ($auditLogOutput) {
-                if (actCode.length > 50) {
-                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: #00bcd4;">[DEBUG] ACT公理を検出: ${actCode.substring(0, 50).replace(/\n/g, ' ')}... (長さ: ${actCode.length})</div>`;
-                } else if (actCode.length > 0) {
-                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: #00bcd4;">[DEBUG] ACT公理を検出: ${actCode.replace(/\n/g, ' ')}</div>`;
-                } else {
-                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: orange;">[DEBUG] ACT公理が検出されませんでした。</div>`;
-                }
-            }
-            // --- デバッグログの追加 終了 ---
+    // UI更新関数
+    function updateUI() {
+        if ($cycleValue) $cycleValue.textContent = REGISTRY.REGISTRY_CYCLE;
+        if ($varsValue) $varsValue.textContent = JSON.stringify(REGISTRY.REGISTRY_VARS);
+        updateAuditLogUI();
+    }
+    
+    function updateAuditLogUI() {
+        if (!$auditLogOutput) return;
+        $auditLogOutput.innerHTML = REGISTRY.REGISTRY_AUDIT_LOG.map(log => {
+            const color = log.type === 'SUCCESS' ? 'yellowgreen' : log.type === 'ERROR' ? 'red' : 'white';
+            return `<div class="log-entry" style="color: ${color};">
+                [C:${log.cycle}] [${log.type}] ${log.message}
+            </div>`;
+        }).join('');
+        $auditLogOutput.scrollTop = $auditLogOutput.scrollHeight;
+    }
 
-            try {
-                // --- 2. L2/L3/L4のコアロジックをVMのグローバルスコープに浮上させる ---
-                // new Function() を使用して、コードをグローバルスコープで実行し、L2/L3/L4を浮上させる
-                const floatingFunction = new Function(coreLogic);
-                floatingFunction(); // これでグローバルに window.CalcOS が定義されることを期待する
-                
-                // --- 3. 浮上確認とACT公理の実行 ---
-                if (typeof window.CalcOS !== 'undefined' && window.CalcOS.executeAct) {
-                    // 実行前にレジストリを初期化
-                    window.CalcOS.init(); 
-                    
-                    // ACT公理を実行
-                    const result = window.CalcOS.executeAct(actCode);
-                    window.CalcOS.updateUI(); 
-                    
-                    // L1の監査ログに成功を記録
-                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: yellowgreen;">[SYSTEM SUCCESS] L2/L3/L4 コアロジックの浮上と実行が完了しました。</div>`;
-                    
-                } else {
-                    // CalcOSがグローバルに見つからない場合
-                    throw new Error("L2/L3/L4ロジックの実行は成功したが、CalcOSオブジェクトがグローバルに見つかりません。");
-                }
+    function logAudit(type, message) {
+        const entry = { type, message, cycle: REGISTRY.REGISTRY_CYCLE };
+        REGISTRY.REGISTRY_AUDIT_LOG.push(entry);
+        if (REGISTRY.REGISTRY_AUDIT_LOG.length > 30) {
+            REGISTRY.REGISTRY_AUDIT_LOG.shift();
+        }
+    }
 
-            } catch (e) {
-                // L1の監査ログに失敗を記録
-                if ($auditLogOutput) {
-                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: red;">[SYSTEM ERROR] L1浮上失敗: ${e.message}</div>`;
-                }
-                console.error("L1浮上失敗:", e);
+    function init() {
+        REGISTRY = JSON.parse(JSON.stringify(DEFAULT_REGISTRY));
+    }
+    
+    // --- L3: コアローダーの役割 (パース) ---
+    function parseCalcCode(code) {
+        // ACT XXX ... END ACT のパターンを検索 (s: .が改行にマッチ, g: グローバル検索)
+        const actBlocks = [];
+        const regex = /(ACT\s+\w+.*?END\s+ACT)/gs; 
+        let match;
+        while ((match = regex.exec(code)) !== null) {
+            actBlocks.push(match[1].trim());
+        }
+        return actBlocks;
+    }
+    
+    function parseAct(actBlock) {
+        // ACTヘッダー解析
+        const headerMatch = actBlock.match(/^ACT\s+(\w+)\s*\((.*?)\s*\)?/s);
+        let actName, paramsStr, body;
+
+        if (headerMatch) {
+            actName = headerMatch[1].trim(); 
+            paramsStr = headerMatch[2] || ''; 
+            body = actBlock.substring(headerMatch[0].length, actBlock.lastIndexOf('END ACT')).trim();
+        } else {
+            const simpleHeaderMatch = actBlock.match(/^ACT\s+(\w+)/s);
+            if (simpleHeaderMatch) {
+                actName = simpleHeaderMatch[1].trim();
+                paramsStr = '';
+                body = actBlock.substring(simpleHeaderMatch[0].length, actBlock.lastIndexOf('END ACT')).trim();
+            } else {
+                throw new Error("ACTヘッダ構文エラー: 適切なACT名が見つかりません。");
             }
         }
         
-        // 起動時にUI要素が確実に存在することを確認
+        const params = {};
+        
+        // 🛡️ L3最終修正: 正規表現による堅牢なK/Vパラメータ抽出
+        const paramRegex = /(\w+)\s*:\s*([^,]+)/g;
+        let match;
+        
+        while ((match = paramRegex.exec(paramsStr)) !== null) {
+            const key = match[1].trim();
+            const value = match[2].trim();
+            
+            if (key) {
+                // キーに対応する値としてそのまま格納
+                params[key] = value; 
+            }
+        }
+
+        return {
+            name: actName,
+            params: params,
+            body: body,
+            fullCode: actBlock
+        };
+    }
+    
+    // --- L4: コアロジックの役割 (値の解決) ---
+    function resolveValue(keyOrLiteral) {
+        // 🛡️ keyOrLiteralがnull/undefinedの場合の防御
+        if (keyOrLiteral === undefined || keyOrLiteral === null) {
+            return undefined; 
+        }
+
+        // 1. 文字列リテラルからの解決 (引用符除去)
+        const trimmedLiteral = keyOrLiteral.replace(/^"|"$/g, ''); 
+        
+        // 2. 変数レジストリからの解決 (引用符を除去したキーで検索)
+        const value = REGISTRY.REGISTRY_VARS[trimmedLiteral];
+        if (value !== undefined) {
+            return value;
+        }
+        
+        // 3. 数値リテラルとしての解決
+        const num = Number(trimmedLiteral);
+        if (!isNaN(num)) {
+            return num;
+        }
+        
+        // 4. REGISTRY_CYCLEの解決
+        if (trimmedLiteral === 'REGISTRY_CYCLE') {
+            return REGISTRY.REGISTRY_CYCLE;
+        }
+
+        // 5. 文字列リテラルとしてそのまま返す (引用符を除去した状態)
+        return trimmedLiteral;
+    }
+
+    function evaluateCondition(conditionStr) {
+        const parts = conditionStr.match(/(\w+|"[^"]*"|\d+)\s*([<|>|<=|>=|==|!=])\s*(\w+|"[^"]*"|\d+)/);
+        
+        if (!parts || parts.length !== 4) {
+            throw new Error(`IF条件式構文エラー: ${conditionStr}`);
+        }
+
+        const v1Raw = parts[1].trim(); 
+        const op = parts[2].trim();
+        const v2Raw = parts[3].trim(); 
+        
+        const v1 = resolveValue(v1Raw);
+        const v2 = resolveValue(v2Raw);
+
+        const operatorFn = COMPARISON_OPS[op];
+        if (!operatorFn) {
+            throw new Error(`IF条件式: 未知の比較演算子 ${op}`);
+        }
+
+        if (typeof v1 === 'number' && typeof v2 === 'number') {
+            return operatorFn(v1, v2);
+        } 
+        
+        return operatorFn(v1.toString(), v2.toString());
+    }
+
+    // Calc-VM (ACT公理実行エンジン) - 実行本体
+    function vmExecuteAct(act) {
+        const actName = act.name;
+        const actParams = act.params;
+
+        // --- ACT LET --- 
+        if (actName === 'LET') {
+            const keyRaw = actParams.K; 
+            
+            if (!keyRaw) {
+                throw new Error("Kパラメータが不足しています。");
+            }
+
+            const key = keyRaw.replace(/^"|"$/g, ''); 
+            let valueRaw = actParams.V;
+            
+            const resolvedValue = resolveValue(valueRaw);
+            
+            if (key) {
+                REGISTRY.REGISTRY_VARS[key] = resolvedValue;
+                REGISTRY.REGISTRY_CYCLE += 1;
+                logAudit('SUCCESS', `ACT LETが完了: ${key} = ${resolvedValue}`);
+            } else {
+                throw new Error("Kパラメータの値が空文字列です。"); 
+            }
+            return "SUCCESS";
+        }
+        
+        // --- ACT CALC --- 
+        if (actName === 'CALC') {
+            const KRaw = actParams.K;
+            const K = KRaw ? KRaw.replace(/^"|"$/g, '') : null;
+            const OP = (actParams.OP || "").replace(/^"|"$/g, '').trim(); 
+            const V1 = resolveValue(actParams.V1);
+            const V2 = resolveValue(actParams.V2);
+            
+            if (typeof V1 !== 'number' || typeof V2 !== 'number') {
+                 throw new Error(`CALC失敗: V1 (${actParams.V1}) または V2 (${actParams.V2}) が数値ではありません。`);
+            }
+            let result;
+            switch (OP) {
+                case 'ADD': result = V1 + V2; break;
+                case 'SUB': result = V1 - V2; break;
+                case 'MUL': result = V1 * V2; break;
+                case 'DIV': 
+                    if (V2 === 0) throw new Error("CALC失敗: ゼロ除算エラー");
+                    result = V1 / V2; 
+                    break;
+                default:
+                    throw new Error(`CALC失敗: 未知の演算子 ${OP}`);
+            }
+            REGISTRY.REGISTRY_VARS[K] = result;
+            REGISTRY.REGISTRY_CYCLE += 1;
+            logAudit('SUCCESS', `ACT CALCが完了: ${K} = ${V1} ${OP} ${V2} = ${result}`);
+            return "SUCCESS";
+        }
+
+        // --- ACT IF --- 
+        if (actName === 'IF') {
+            const conditionStr = actParams.CONDITION;
+            let result;
+            try {
+                result = evaluateCondition(conditionStr);
+            } catch (e) {
+                 logAudit('ERROR', `ACT IF条件評価失敗: ${e.message}`);
+                 throw new Error("IF条件評価失敗");
+            }
+            
+            logAudit('AUDIT', `ACT IF: 条件 "${conditionStr}" の評価結果は ${result} です。`);
+
+            if (result === true) {
+                const nestedActList = parseCalcCode(act.body);
+                for (const nestedActCode of nestedActList) {
+                    const nestedAct = parseAct(nestedActCode);
+                    vmExecuteAct(nestedAct);
+                }
+                logAudit('SUCCESS', 'ACT IF: 条件が真のため、内部ACTを実行しました。');
+            } else {
+                logAudit('AUDIT', 'ACT IF: 条件が偽のため、内部ACTをスキップしました。');
+            }
+            return "SUCCESS";
+        }
+
+        // --- ACT LOOP --- 
+        if (actName === 'LOOP') {
+            const countRaw = actParams.COUNT;
+            const count = parseInt(resolveValue(countRaw), 10); 
+            
+            if (isNaN(count) || count <= 0) {
+                throw new Error(`LOOP失敗: 無効なカウント値 ${countRaw}。`);
+            }
+            const nestedActList = parseCalcCode(act.body); 
+            for (let i = 0; i < count; i++) {
+                for (const nestedActCode of nestedActList) {
+                    const nestedAct = parseAct(nestedActCode);
+                    vmExecuteAct(nestedAct);
+                }
+            }
+            logAudit('SUCCESS', `ACT LOOPが完了しました (${count}回)。`);
+            return "SUCCESS";
+        }
+        
+        // --- ACT DEPLOY/IO はコア検証モードのため削除 ---
+        if (actName === 'DEPLOY' || actName === 'IO') {
+            logAudit('AUDIT', `ACT ${actName} はコア検証モードのためスキップされました。`);
+            return "SUCCESS";
+        }
+        
+        // --- ACT STRING (文字列操作) ---
+        if (actName === 'STRING') {
+            const KRaw = actParams.K;
+            const K = KRaw ? KRaw.replace(/^"|"$/g, '') : null;
+            const OP = (actParams.OP || "").replace(/^"|"$/g, '').trim(); 
+
+            if (OP === 'CONCAT') {
+                let result = "";
+                let i = 1;
+                while (actParams[`V${i}`] !== undefined) {
+                    const rawVal = actParams[`V${i}`]; 
+                    const val = resolveValue(rawVal); 
+                    result += val.toString();
+                    i++;
+                }
+                
+                REGISTRY.REGISTRY_VARS[K] = result;
+                REGISTRY.REGISTRY_CYCLE += 1;
+                logAudit('SUCCESS', `ACT STRING (CONCAT) が完了: ${K} = "${result}"`);
+            } else {
+                throw new Error(`STRING失敗: 未知の演算子 '${OP}' です。`);
+            }
+            return "SUCCESS";
+        }
+        
+        throw new Error(`VM: 未知のACT公理 '${actName}' が検出されました。`);
+    }
+    
+    // Calc-VMの全体実行ロジック 
+    function executeAct(actCode) {
+        let actList;
+        try {
+            actList = parseCalcCode(actCode);
+        } catch(e) {
+            logAudit('ERROR', `コード解析エラー: ${e.message}`);
+            return { status: "ERROR", reason: "PARSER_FAILURE" };
+        }
+
+        let overallStatus = "SUCCESS";
+        
+        for (const actBlock of actList) {
+            try {
+                const act = parseAct(actBlock);
+                vmExecuteAct(act); 
+            } catch (e) {
+                REGISTRY.REGISTRY_CYCLE += 1; 
+                logAudit('ERROR', `ACT実行失敗: ${e.message} [コード: ${actBlock.substring(0, 50)}...]`);
+                overallStatus = "ERROR";
+                break; 
+            }
+            if (overallStatus === "ERROR") break; 
+        }
+        
+        // 最終的なUI更新
+        updateUI();
+
+        return { status: overallStatus, reason: overallStatus === "SUCCESS" ? "ALL_ACTS_EXECUTED" : "EXECUTION_ERROR" };
+    }
+
+
+    return {
+        init: init,
+        executeAct: executeAct, 
+        updateUI: updateUI,    
+        renderHost: function() {
+            if ($calcHostContent) {
+                 $calcHostContent.innerHTML = 'CalcHost: 描画公理 (ACT DEPLOY) は、沈黙のメモ帳の安定化のため無効化されています。';
+            }
+            logAudit('AUDIT', 'RENDER機能はコア検証モードのため無効化されています。');
+            updateUI();
+        },
+    };
+})();
+
+// --- L2/L3/L4 統合コアロジック定義 終了 ---
+    </script>
+    
+    <hr>
+
+    <h3>ACT公理 (ユーザー入力) + ACT公理実行ロジック</h3>
+    <p>以下のエリアにACT公理を記述し、実行ボタンを押してください。</p>
+    
+    <textarea id="act-code-input">// ここに実行したい ACT公理 を記述します。
+// 例:
+ACT LET ( K: "VAR_1", V: 100 ) END ACT
+ACT CALC ( K: "VAR_2", OP: "ADD", V1: "VAR_1", V2: 50 ) END ACT</textarea>
+
+    <button onclick="runCalcOS()">▶️ ローカルで実行 (Execute in VM)</button>
+    
+    <hr>
+    
+    <script>
+        /**
+         * L1とCalcOSコアを結びつける関数。
+         * UIからコードを取得し、CalcOS.executeAct()を呼び出す。
+         */
+        function runCalcOS() {
+            // L2/L3/L4コアが初期化されているか確認
+            if (typeof window.CalcOS === 'undefined' || typeof window.CalcOS.executeAct !== 'function') {
+                alert("エラー: CalcOSコアロジックが正しく浮上されていません。");
+                return;
+            }
+
+            // 実行前にレジストリを初期状態に戻す（テストをクリーンにするため）
+            window.CalcOS.init();
+            
+            // 💡 L1のACTコード入力エリアからコードを取得
+            const actCode = document.getElementById('act-code-input').value; 
+            
+            // 3. ACT公理の実行
+            const result = window.CalcOS.executeAct(actCode);
+
+            // 4. 結果の描画
+            // 実行関数内でUI更新は行われますが、念のため再度呼び出す
+            window.CalcOS.renderHost(); 
+            
+            console.log("CalcOS Execution Status:", result.status);
+        }
+
+        // L1がロードされた直後にCalcOSコアを初期化
         window.onload = function() {
-            const $auditLogOutput = document.getElementById('audit-log-output');
-            if ($auditLogOutput) {
-                $auditLogOutput.innerHTML = `<div class="log-entry" style="color: yellowgreen;">[C:0] [INIT] L1 浮上シェルが起動しました。L2/L3/L4の注入を待機します。</div>`;
+            if (typeof window.CalcOS !== 'undefined' && typeof window.CalcOS.init === 'function') {
+                window.CalcOS.init();
+                window.CalcOS.updateUI(); // 初期UIを更新
             }
         };
     </script>
+
+    <hr>
+
+    <h3>📜 Calc-Audit Log (監査記録)</h3>
+    <div id="audit-log-output" style="max-height: 250px; overflow-y: auto; background-color: #000000; padding: 10px;">
+        </div>
+
+    <h2>🌐 CalcHost - 論理的描画領域 (浮上待機中)</h2>
+    <div id="calchost-content">
+        L1が提供する描画エリアです。L4のACT DEPLOY公理によって支配されるのを待ちます。
+    </div>
+
+</div>
 </body>
 </html>
