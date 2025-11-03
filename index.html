@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CalcLang 記述環境 (CDE) - 浮上シェル (L1)</title>
     <style>
-        /* スタイルは簡潔化のため最小限に記述します。必要に応じて以前の完全なスタイルを適用してください。 */
+        /* スタイルは簡潔化のため最小限に記述します。 */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #1e1e1e;
@@ -80,9 +80,9 @@
             **L2/L3/L4 コアロジック (ユーザーのローカルデータ)** + **ACT公理**を入力:
         </label>
         <textarea id="calc-code">
-// 1. まず、L2/L3/L4 統合コアロジック定義を全て貼り付けます（const CalcOS = (function() {...})()）。
+// 1. まず、L2/L3/L4 統合コアロジック定義を全て貼り付けます（window.CalcOS = (function() {...})()）。
 
-// 2. その直後に、このセパレータを記述します。
+// 2. その直後に、このセパレータを記述します。（非常に重要）
 // --- ACT公理 (ユーザー入力) ---
 
 // 3. この下に、実行したい ACT公理 を記述します。
@@ -119,20 +119,32 @@
             // エラーログ初期化
             const $auditLogOutput = document.getElementById('audit-log-output');
             
+            // --- デバッグログの追加 ---
+            if ($auditLogOutput) {
+                if (actCode.length > 50) {
+                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: #00bcd4;">[DEBUG] ACT公理を検出: ${actCode.substring(0, 50).replace(/\n/g, ' ')}... (長さ: ${actCode.length})</div>`;
+                } else if (actCode.length > 0) {
+                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: #00bcd4;">[DEBUG] ACT公理を検出: ${actCode.replace(/\n/g, ' ')}</div>`;
+                } else {
+                    $auditLogOutput.innerHTML += `<div class="log-entry" style="color: orange;">[DEBUG] ACT公理が検出されませんでした。</div>`;
+                }
+            }
+            // --- デバッグログの追加 終了 ---
+
             try {
                 // --- 2. L2/L3/L4のコアロジックをVMのグローバルスコープに浮上させる ---
                 // new Function() を使用して、コードをグローバルスコープで実行し、L2/L3/L4を浮上させる
                 const floatingFunction = new Function(coreLogic);
-                floatingFunction(); // これでグローバルに CalcOS が定義されることを期待する
+                floatingFunction(); // これでグローバルに window.CalcOS が定義されることを期待する
                 
                 // --- 3. 浮上確認とACT公理の実行 ---
-                if (typeof CalcOS !== 'undefined' && CalcOS.executeAct) {
+                if (typeof window.CalcOS !== 'undefined' && window.CalcOS.executeAct) {
                     // 実行前にレジストリを初期化
-                    CalcOS.init(); 
+                    window.CalcOS.init(); 
                     
                     // ACT公理を実行
-                    const result = CalcOS.executeAct(actCode);
-                    CalcOS.updateUI(); 
+                    const result = window.CalcOS.executeAct(actCode);
+                    window.CalcOS.updateUI(); 
                     
                     // L1の監査ログに成功を記録
                     $auditLogOutput.innerHTML += `<div class="log-entry" style="color: yellowgreen;">[SYSTEM SUCCESS] L2/L3/L4 コアロジックの浮上と実行が完了しました。</div>`;
@@ -148,7 +160,6 @@
                     $auditLogOutput.innerHTML += `<div class="log-entry" style="color: red;">[SYSTEM ERROR] L1浮上失敗: ${e.message}</div>`;
                 }
                 console.error("L1浮上失敗:", e);
-                // VMのエラーがAudit Logに反映されることを期待
             }
         }
         
