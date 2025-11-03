@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v0(6) [コア検証モード]</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v0(7) [コア検証モード]</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -88,9 +88,9 @@
 </head>
 <body>
     <div id="cde-container">
-        <h1 style="color: #ff9900;">CalcLang CDE v0(6)</h1>
+        <h1 style="color: #ff9900;">CalcLang CDE v0(7)</h1>
         <p style="color: #ccc; font-size: small;">
-            **純粋な数理的沈黙のメモ帳**を安定させるための、コア検証モードです。**<code>parseAct</code> の引数解析の堅牢性を強化しました。**
+            **純粋な数理的沈黙のメモ帳**を安定させるための、コア検証モードです。**<code>parseAct</code> のACTヘッダー解析の堅牢性を強化しました。**
         </p>
 
         <p>
@@ -110,6 +110,9 @@ END ACT
 // 文字列リテラルにクォートと空白のノイズを挿入
 ACT LET ( K:  VAR_2 , V: "  SUCCESS  " )
 END ACT
+// パラメータ区切りカンマの前後にノイズとなる空白を挿入
+ACT LET ( K: VAR_TEST_COMMA , V: 500 )
+END ACT
 
 
 // --- 2. ACT CALC (沈黙の演算テスト) ---
@@ -117,7 +120,7 @@ END ACT
 ACT CALC ( K: VAR_3, OP:  "ADD" , V1: VAR_1 , V2:  50  )
 END ACT
 // 存在しない変数を使用し、VMエラーではなく論理的な失敗を誘発するか確認
-// (このケースではresolveValueがリテラル "UNKNOWN_VAR" を返すはず)
+// (VMエラーにならずAudit LogにERRORが記録されることを期待)
 ACT CALC ( K: VAR_4, OP: "SUB", V1: VAR_1, V2: UNKNOWN_VAR )
 END ACT
 
@@ -137,7 +140,7 @@ ACT IF ( CONDITION: VAR_3  ==  150 )
     ACT LET (K: STATUS_A, V: " IF_A_TRUE ")
     END ACT
 END ACT
-// 文字列比較の境界をテスト
+// 文字列比較の境界をテスト（VAR_2の内部空白は維持されるが、比較時に適切に処理されるか）
 ACT IF ( CONDITION: VAR_2 == "  SUCCESS  " )
     ACT LET (K: STATUS_B, V: " IF_B_TRUE_TRIMMED ")
     END ACT
@@ -225,7 +228,7 @@ END ACT
             function init() {
                 REGISTRY = JSON.parse(JSON.stringify(DEFAULT_REGISTRY));
                 updateUI();
-                logAudit('INIT', '数理的沈黙のプログラミング v0(6) [コア検証モード]が起動しました。');
+                logAudit('INIT', '数理的沈黙のプログラミング v0(7) [コア検証モード]が起動しました。');
             }
             
             function parseCalcCode(code) {
@@ -239,35 +242,36 @@ END ACT
             }
             
             function parseAct(actBlock) {
-                const headerMatch = actBlock.match(/^ACT\s+(\w+)\s*(?:\((.*?)\))?/s);
+                // ⭐ ACTヘッダー解析の堅牢化 (v0(7) 修正)
+                const headerMatch = actBlock.match(/^ACT\s+(\w+)\s*\(\s*(.*?)\s*\)?/s);
                 let actName, paramsStr, body;
 
                 if (headerMatch) {
                     actName = headerMatch[1]; 
                     paramsStr = headerMatch[2] || ''; 
+                    // bodyの切り出しは、headerMatch[0]（ACTヘッダー全体）の長さから計算
                     body = actBlock.substring(headerMatch[0].length, actBlock.lastIndexOf('END ACT')).trim();
                 } else {
-                    const bodyMatch = actBlock.match(/^ACT\s+(\w+)(.*?END\s+ACT)/s);
-                    if (bodyMatch) {
-                        actName = bodyMatch[1];
+                    // パラメータがないACT（例: ACT RENDER END ACT）のための予備チェック
+                    const simpleHeaderMatch = actBlock.match(/^ACT\s+(\w+)/s);
+                    if (simpleHeaderMatch) {
+                        actName = simpleHeaderMatch[1];
                         paramsStr = '';
-                        body = bodyMatch[2].trim().replace(/END\s+ACT$/, '').trim();
+                        body = actBlock.substring(simpleHeaderMatch[0].length, actBlock.lastIndexOf('END ACT')).trim();
                     } else {
                         throw new Error("ACTヘッダ構文エラー");
                     }
                 }
                 
                 const params = {};
-                // ⭐ ACTの引数解析の堅牢化 (v0(6) 修正)
+                // ACTの引数解析 (v0(6)修正を維持)
                 paramsStr.split(',').forEach(param => {
                     const paramTrimmed = param.trim();
-                    if (paramTrimmed === '') return; // 新規: 空のパラメータ（過剰なカンマ等）を無視
+                    if (paramTrimmed === '') return; 
 
-                    // コロンで分割し、さらに各パーツの両端の空白を削除
                     const parts = paramTrimmed.split(':').map(p => p.trim());
 
                     if (parts.length === 2) {
-                        // Vの値を解析する際に、前後のクォートのみを除去し、内部のデリミタ誤認を回避
                         params[parts[0]] = parts[1].replace(/^"|"$/g, '');
                     }
                 });
@@ -292,12 +296,10 @@ END ACT
                     return num;
                 }
                 
-                // ⭐ 文字列リテラルを返す
                 return keyOrLiteral;
             }
 
             function substituteVars(text) {
-                // コア検証モードでは変数置換は最小限
                 let substitutedText = text;
                 substitutedText = substitutedText.replace(/REGISTRY_CYCLE/g, REGISTRY.REGISTRY_CYCLE);
 
@@ -332,7 +334,6 @@ END ACT
                     return operatorFn(v1, v2);
                 } 
                 
-                // 文字列比較を行う前に、比較対象の両端の空白をtrimする必要がある
                 return operatorFn(v1.toString().trim(), v2.toString().trim());
             }
 
@@ -355,7 +356,6 @@ END ACT
                         REGISTRY.REGISTRY_CYCLE += 1;
                         logAudit('SUCCESS', `ACT LETが完了: ${key} = ${resolvedValue}`);
                     } else {
-                        // Kが不足している、または値が解決できない場合にエラーを出す
                         throw new Error("K/Vパラメータが不足しています。");
                     }
                     return "SUCCESS";
@@ -364,12 +364,10 @@ END ACT
                 // --- 既存公理: ACT CALC --- 
                 if (actName === 'CALC') {
                     const K = actParams.K;
-                    // ⭐ .trim()を追加
                     const OP = (actParams.OP || "").replace(/^"|"$/g, '').trim(); 
                     const V1 = resolveValue(actParams.V1);
                     const V2 = resolveValue(actParams.V2);
                     
-                    // V1またはV2が数値ではない場合（未定義変数などがそのまま文字列として解決された場合）
                     if (typeof V1 !== 'number' || typeof V2 !== 'number') {
                          throw new Error(`CALC失敗: V1 (${actParams.V1}) または V2 (${actParams.V2}) が数値ではありません。`);
                     }
@@ -443,7 +441,6 @@ END ACT
                 // --- [v0(6)] 公理: ACT STRING (文字列操作) ---
                 if (actName === 'STRING') {
                     const K = actParams.K;
-                    // ⭐ .trim()を追加
                     const OP = (actParams.OP || "").replace(/^"|"$/g, '').trim(); 
 
                     if (OP === 'CONCAT') {
@@ -451,7 +448,6 @@ END ACT
                         let i = 1;
                         while (actParams[`V${i}`] !== undefined) {
                             const rawVal = actParams[`V${i}`] || ""; 
-                            // resolveValueに渡す前に、引数の外側のクォートを除去
                             const val = resolveValue(rawVal.replace(/^"|"$/g, '')); 
                             result += val.toString();
                             i++;
@@ -505,7 +501,6 @@ END ACT
                     return result;
                 },
                 renderHost: function() {
-                    // コア検証モードではRENDER機能はスキップ
                     $calcHostContent.innerHTML = 'CalcHost: 描画公理 (ACT DEPLOY) は、沈黙のメモ帳の安定化のため無効化されています。';
                     logAudit('AUDIT', 'RENDER機能はコア検証モードのため無効化されています。');
                     updateUI();
