@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v8.0 (条件分岐)</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v9.0 (IO/STRING)</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -20,8 +19,8 @@
             width: 500px;
             max-width: 90vw;
             background-color: #0d061c;
-            border: 5px solid #ff5757; /* 制御構造のテーマカラー */
-            box-shadow: 0 0 20px rgba(255, 87, 87, 0.4);
+            border: 5px solid #22a7f0; /* IO/STRINGのテーマカラー */
+            box-shadow: 0 0 20px rgba(34, 167, 240, 0.4);
             padding: 20px;
             border-radius: 10px;
             margin-right: 20px;
@@ -31,7 +30,7 @@
             height: 250px; 
             background-color: #1a1a2e;
             color: #d4d4d4;
-            border: 1px solid #c93b3b;
+            border: 1px solid #1472a3;
             padding: 10px;
             resize: none;
             font-size: 14px;
@@ -68,7 +67,6 @@
             box-sizing: border-box;
             font-size: 14px;
         }
-        #calchost-content h1, h2, h3 { color: #fff; }
         #calchost-output h2 { color: #ffffff; border-bottom: 1px solid #a47fe0; padding-bottom: 5px;}
         
         /* 監査ログエリアのスタイル */
@@ -86,13 +84,23 @@
             border-bottom: 1px dotted #333;
             padding: 3px 0;
         }
+        /* [v9.0新規] ユーザー入力エリア */
+        #input-area {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            background-color: #2a3a4e;
+            color: #d4d4d4;
+            border: 1px solid #22a7f0;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
     <div id="cde-container">
-        <h1 style="color: #ff5757;">CalcLang CDE v8.0 (条件分岐)</h1>
+        <h1 style="color: #22a7f0;">CalcLang CDE v9.0 (IO/STRING)</h1>
         <p style="color: #ccc; font-size: small;">
-            条件分岐 (ACT IF) を導入。計算結果に基づく論理的な選択を可能に。
+            外部データ入出力 (ACT IO) と文字列操作 (ACT STRING) を導入。
         </p>
 
         <p>
@@ -100,37 +108,36 @@
             <br>
             <strong>REGISTRY_VARS:</strong> <span id="vars-value" style="font-size: small;">{}</span>
         </p>
+
+        <label for="input-area" style="display: block; margin-top: 15px;">
+            **🌐 外部データ入力 (ID: INPUT_AREA)**
+        </label>
+        <input type="text" id="input-area" value="通貨を発行してください (v9.0 IOテスト)">
         
         <label for="calc-code" style="display: block; margin-top: 15px;">
             CalcLang 論理記述 (ACT公理 - S式):
         </label>
         <textarea id="calc-code">
-// --- ⚙️ 初期設定 ---
-ACT LET (K: ALPHA_BALANCE, V: 50)
-END ACT
-ACT LET (K: STATUS_MESSAGE, V: "初期状態")
+// --- ⚙️ v9.0 IO/STRING テスト ---
+ACT LET (K: INITIAL_MESSAGE, V: "履歴:")
 END ACT
 
-// --- ❓ ACT IF: 条件分岐の実行 ---
-// 経済ロジック例: 残高が100より少ない場合、メッセージを更新
-ACT IF (CONDITION: ALPHA_BALANCE < 100)
-    ACT LET (K: STATUS_MESSAGE, V: "残高不足のため、MINTは保留されました")
-    END ACT
+// --- 📥 ACT IO: 外部データの読み込み ---
+// 外部UI (INPUT_AREA) の値を PROMPT に格納する
+ACT IO (K: PROMPT, SRC: input-area, MODE: READ)
 END ACT
 
-// 経済ロジック例: 残高が50以上の場合、別のメッセージを更新
-ACT IF (CONDITION: ALPHA_BALANCE >= 50)
-    ACT LET (K: STATUS_MESSAGE, V: "残高確認完了。取引可能です")
-    END ACT
+// --- 📝 ACT STRING: 文字列の連結 ---
+// FULL_CONTEXT = INITIAL_MESSAGE + " " + PROMPT
+ACT STRING (K: FULL_CONTEXT, OP: CONCAT, V1: INITIAL_MESSAGE, V2: " ", V3: PROMPT)
 END ACT
 
-
-// --- 🖼️ ACT DEPLOY: 計算結果を描画 ---
+// --- 🖼️ 結果の描画 ---
 ACT DEPLOY
-    ['div', {'style': 'padding: 15px; background-color: #2c0b43; border-radius: 5px; border: 1px solid #ff5757;'}, [
-        ['h3', {'style': 'color: #fff;'}, ['CalcHost: 意思決定結果']],
-        ['p', {}, ['現在のALPHA残高: ', ALPHA_BALANCE]],
-        ['p', {}, ['最終メッセージ: ', STATUS_MESSAGE]],
+    ['div', {'style': 'padding: 15px; background-color: #1a1a2e; border-radius: 5px; border: 1px solid #22a7f0;'}, [
+        ['h3', {'style': 'color: #fff;'}, ['v9.0 IO/STRING 監査結果']],
+        ['p', {}, ['📥 読み込まれた PROMPT: ', PROMPT]],
+        ['p', {'style': 'color: #90f090;'}, ['📝 連結された CONTEXT: ', FULL_CONTEXT]],
         ['p', {'style': 'font-size: 10px;'}, ['最終サイクル:', REGISTRY_CYCLE]]
     ]]
 END ACT
@@ -166,33 +173,23 @@ END ACT
         // 🧠 --- Calc-OS (論理的オペレーティングシステム) コア定義 ---
         const CalcOS = (function() {
             let REGISTRY;
-
-            // Calc-OSの初期論理定義 (v8.0レジストリ)
             const DEFAULT_REGISTRY = {
                 REGISTRY_CYCLE: 0, 
                 REGISTRY_VARS: {}, 
                 REGISTRY_HOST_S_EXPR: null, 
                 REGISTRY_AUDIT_LOG: [],
             };
-
-            // [v8.0新規] 比較演算子とその関数マップ
             const COMPARISON_OPS = {
-                '>': (a, b) => a > b,
-                '<': (a, b) => a < b,
-                '>=': (a, b) => a >= b,
-                '<=': (a, b) => a <= b,
-                '==': (a, b) => a === b,
-                '!=': (a, b) => a !== b,
+                '>': (a, b) => a > b, '<': (a, b) => a < b, '>=': (a, b) => a >= b,
+                '<=': (a, b) => a <= b, '==': (a, b) => a === b, '!=': (a, b) => a !== b,
             };
 
-            // 外部API: UI更新
             function updateUI() {
                 $cycleValue.textContent = REGISTRY.REGISTRY_CYCLE;
                 $varsValue.textContent = JSON.stringify(REGISTRY.REGISTRY_VARS);
                 updateAuditLogUI();
             }
             
-            // 外部API: 監査ログUI更新
             function updateAuditLogUI() {
                 $auditLogOutput.innerHTML = REGISTRY.REGISTRY_AUDIT_LOG.map(log => {
                     const color = log.type === 'SUCCESS' ? 'yellowgreen' : 'red';
@@ -203,7 +200,6 @@ END ACT
                 $auditLogOutput.scrollTop = $auditLogOutput.scrollHeight;
             }
 
-            // ACT LOGの鏡像
             function logAudit(type, message) {
                 const entry = { type, message, cycle: REGISTRY.REGISTRY_CYCLE };
                 REGISTRY.REGISTRY_AUDIT_LOG.push(entry);
@@ -212,17 +208,14 @@ END ACT
                 }
             }
 
-            // Calc-OSのブートストラップと初期化
             function init() {
                 REGISTRY = JSON.parse(JSON.stringify(DEFAULT_REGISTRY));
                 updateUI();
-                logAudit('INIT', '数理的沈黙のプログラミング v8.0が起動しました。');
+                logAudit('INIT', '数理的沈黙のプログラミング v9.0が起動しました。');
             }
             
-            // Calc-ACT Parser (公理ブロックの抽出) - v8.0対応
             function parseCalcCode(code) {
                 const actBlocks = [];
-                // ACT [NAME] (optional parameters) ... END ACT
                 const regex = /(ACT\s+\w+.*?END\s+ACT)/gs; 
                 let match;
                 while ((match = regex.exec(code)) !== null) {
@@ -231,7 +224,6 @@ END ACT
                 return actBlocks;
             }
             
-            // Calc-ACT Parser (個々の公理ブロックの解析) - v8.0対応
             function parseAct(actBlock) {
                 const headerMatch = actBlock.match(/^ACT\s+(\w+)\s*(?:\((.*?)\))?/s);
                 let actName, paramsStr, body;
@@ -255,7 +247,6 @@ END ACT
                 paramsStr.split(',').forEach(param => {
                     const parts = param.trim().split(':').map(p => p.trim());
                     if (parts.length === 2) {
-                        // パラメータ値のクォートを除去
                         params[parts[0]] = parts[1].replace(/^"|"$/g, '').trim(); 
                     }
                 });
@@ -268,7 +259,6 @@ END ACT
                 };
             }
 
-            // 変数またはリテラル値を取得するヘルパー関数 (v8.0)
             function resolveValue(keyOrLiteral) {
                 const value = REGISTRY.REGISTRY_VARS[keyOrLiteral];
                 
@@ -284,7 +274,6 @@ END ACT
                 return keyOrLiteral;
             }
 
-            // S式内のテキストから変数を置換するヘルパー関数 (v8.0)
             function substituteVars(text) {
                 let substitutedText = text;
                 substitutedText = substitutedText.replace(/REGISTRY_CYCLE/g, REGISTRY.REGISTRY_CYCLE);
@@ -297,9 +286,7 @@ END ACT
                 return substitutedText;
             }
 
-            // [v8.0新規] ACT IFの条件式を評価する関数
             function evaluateCondition(conditionStr) {
-                // 条件式を V1 OP V2 の形式で解析 (例: ALPHA_BALANCE < 100)
                 const parts = conditionStr.match(/(\w+|\d+)\s*([<|>|<=|>=|==|!=])\s*(\w+|\d+)/);
                 
                 if (!parts || parts.length !== 4) {
@@ -310,7 +297,6 @@ END ACT
                 const op = parts[2].trim();
                 const v2Key = parts[3].trim();
                 
-                // 変数/リテラルの値を解決
                 const v1 = resolveValue(v1Key);
                 const v2 = resolveValue(v2Key);
 
@@ -319,16 +305,13 @@ END ACT
                     throw new Error(`IF条件式: 未知の比較演算子 ${op}`);
                 }
 
-                // 数値型での比較を試みる
                 if (typeof v1 === 'number' && typeof v2 === 'number') {
                     return operatorFn(v1, v2);
                 } 
                 
-                // それ以外（文字列など）は厳密比較
                 return operatorFn(v1.toString(), v2.toString());
             }
 
-            // ACT RENDER 公理の核 (v8.0ロジックを保持)
             function renderSExpr(sExpr) {
                 if (typeof sExpr === 'string') {
                     return document.createTextNode(substituteVars(sExpr));
@@ -362,7 +345,7 @@ END ACT
                 const actName = act.name;
                 const actParams = act.params;
 
-                // --- 公理: ACT LET ---
+                // --- 既存公理: ACT LET --- (変更なし)
                 if (actName === 'LET') {
                     const key = actParams.K;
                     let value = actParams.V;
@@ -380,7 +363,7 @@ END ACT
                     return "SUCCESS";
                 }
                 
-                // --- 公理: ACT CALC ---
+                // --- 既存公理: ACT CALC --- (変更なし)
                 if (actName === 'CALC') {
                     const K = actParams.K;
                     const OP = actParams.OP;
@@ -407,7 +390,7 @@ END ACT
                     return "SUCCESS";
                 }
 
-                // --- [v8.0新規] 公理: ACT IF (条件分岐) ---
+                // --- 既存公理: ACT IF --- (変更なし)
                 if (actName === 'IF') {
                     const conditionStr = actParams.CONDITION;
                     let result;
@@ -433,7 +416,7 @@ END ACT
                     return "SUCCESS";
                 }
 
-                // --- 公理: ACT LOOP ---
+                // --- 既存公理: ACT LOOP --- (変更なし)
                 if (actName === 'LOOP') {
                     const count = parseInt(actParams.COUNT, 10);
                     if (isNaN(count) || count <= 0) {
@@ -450,7 +433,7 @@ END ACT
                     return "SUCCESS";
                 }
                 
-                // --- 公理: ACT DEPLOY ---
+                // --- 既存公理: ACT DEPLOY --- (変更なし)
                 if (actName === 'DEPLOY') {
                     try {
                         const parsedSExpr = JSON.parse(act.body); 
@@ -463,14 +446,57 @@ END ACT
                     }
                     return "SUCCESS";
                 }
+
+                // --- [v9.0新規] 公理: ACT IO (入出力) ---
+                if (actName === 'IO') {
+                    const key = actParams.K;
+                    const sourceId = actParams.SRC;
+                    const mode = actParams.MODE || 'READ';
+
+                    if (mode === 'READ') {
+                        const sourceElement = document.getElementById(sourceId);
+                        if (!sourceElement) {
+                            throw new Error(`IO失敗: 参照ID '${sourceId}' の要素が見つかりません。`);
+                        }
+                        const value = sourceElement.value;
+                        REGISTRY.REGISTRY_VARS[key] = value;
+                        REGISTRY.REGISTRY_CYCLE += 1;
+                        logAudit('SUCCESS', `ACT IO (READ) が完了: ${key} <- "${value}" (from #${sourceId})`);
+                    } else {
+                        throw new Error(`IO失敗: 未知のモード '${mode}' です。`);
+                    }
+                    return "SUCCESS";
+                }
+                
+                // --- [v9.0新規] 公理: ACT STRING (文字列操作) ---
+                if (actName === 'STRING') {
+                    const K = actParams.K;
+                    const OP = actParams.OP;
+
+                    if (OP === 'CONCAT') {
+                        // V1, V2, V3... のパラメータを順番に取得し、文字列として連結
+                        let result = "";
+                        let i = 1;
+                        while (actParams[`V${i}`] !== undefined) {
+                            const val = resolveValue(actParams[`V${i}`]);
+                            result += val.toString();
+                            i++;
+                        }
+                        
+                        REGISTRY.REGISTRY_VARS[K] = result;
+                        REGISTRY.REGISTRY_CYCLE += 1;
+                        logAudit('SUCCESS', `ACT STRING (CONCAT) が完了: ${K} = "${result}"`);
+                    } else {
+                        throw new Error(`STRING失敗: 未知の演算子 '${OP}' です。`);
+                    }
+                    return "SUCCESS";
+                }
                 
                 throw new Error(`VM: 未知のACT公理 '${actName}' が検出されました。`);
             }
             
-            // Calc-VMの全体実行ロジック
+            // Calc-VMの全体実行ロジック (変更なし)
             function executeAct(actCode) {
-                // v8.0で追加されたACT IO, ACT STRINGは、このコアには含まれていませんが、
-                // 実行ロジック自体は汎用的に動作します。
                 let actList;
                 try {
                     actList = parseCalcCode(actCode);
@@ -488,6 +514,7 @@ END ACT
                     } catch (e) {
                         logAudit('ERROR', `ACT実行失敗: ${e.message} [コード: ${actBlock.substring(0, 50)}...]`);
                         overallStatus = "ERROR";
+                        break; // エラー発生時に中断
                     }
                 }
                 
