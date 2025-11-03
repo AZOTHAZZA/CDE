@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v9.0 (IO/STRING) - FIXED-v2</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v9.0 (IO/STRING) - FIXED-v3</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -19,7 +19,7 @@
             width: 500px;
             max-width: 90vw;
             background-color: #0d061c;
-            border: 5px solid #ff9900; /* テーマカラーを修正強調 */
+            border: 5px solid #ff9900; 
             box-shadow: 0 0 20px rgba(255, 153, 0, 0.4);
             padding: 20px;
             border-radius: 10px;
@@ -98,9 +98,9 @@
 </head>
 <body>
     <div id="cde-container">
-        <h1 style="color: #ff9900;">CalcLang CDE v9.0 (FIXED-v2)</h1>
+        <h1 style="color: #ff9900;">CalcLang CDE v9.0 (FIXED-v3)</h1>
         <p style="color: #ccc; font-size: small;">
-            コアのACT STRING/IOパーサーを防御的に修正しました。
+            コアのACT STRING/IOパーサーの空白処理を修正しました。
         </p>
 
         <p>
@@ -283,7 +283,7 @@ END ACT
             function init() {
                 REGISTRY = JSON.parse(JSON.stringify(DEFAULT_REGISTRY));
                 updateUI();
-                logAudit('INIT', '数理的沈黙のプログラミング v9.0 FIXED-v2が起動しました。');
+                logAudit('INIT', '数理的沈黙のプログラミング v9.0 FIXED-v3が起動しました。');
             }
             
             function parseCalcCode(code) {
@@ -354,7 +354,6 @@ END ACT
                 substitutedText = substitutedText.replace(/REGISTRY_CYCLE/g, REGISTRY.REGISTRY_CYCLE);
 
                 for (const key in REGISTRY.REGISTRY_VARS) {
-                    // 正規表現のコンパイルをループ外で行うのは非効率なため、このロジックは簡略化
                     const regex = new RegExp(key, 'g'); 
                     substitutedText = substitutedText.replace(regex, REGISTRY.REGISTRY_VARS[key]);
                 }
@@ -369,9 +368,9 @@ END ACT
                     throw new Error(`IF条件式構文エラー: ${conditionStr}`);
                 }
 
-                const v1Key = parts[1].trim().replace(/^"|"$/g, ''); // クォートを削除
+                const v1Key = parts[1].trim().replace(/^"|"$/g, ''); 
                 const op = parts[2].trim();
-                const v2Key = parts[3].trim().replace(/^"|"$/g, ''); // クォートを削除
+                const v2Key = parts[3].trim().replace(/^"|"$/g, ''); 
                 
                 const v1 = resolveValue(v1Key);
                 const v2 = resolveValue(v2Key);
@@ -441,7 +440,8 @@ END ACT
                 // --- 既存公理: ACT CALC --- 
                 if (actName === 'CALC') {
                     const K = actParams.K;
-                    const OP = (actParams.OP || "").replace(/^"|"$/g, ''); // ⭐ 修正: 防御的なコード追加
+                    // ⭐ CALC OPに.trim()を追加
+                    const OP = (actParams.OP || "").replace(/^"|"$/g, '').trim(); 
                     const V1 = resolveValue(actParams.V1);
                     const V2 = resolveValue(actParams.V2);
                     if (typeof V1 !== 'number' || typeof V2 !== 'number') {
@@ -525,9 +525,9 @@ END ACT
                 // --- [v9.0新規] 公理: ACT IO (入出力) ---
                 if (actName === 'IO') {
                     const key = actParams.K;
-                    // ⭐ 修正点: SRCとMODEに防御的なコード追加
-                    const sourceId = (actParams.SRC || "").replace(/^"|"$/g, ''); 
-                    const mode = (actParams.MODE || "READ").replace(/^"|"$/g, '');
+                    // ⭐ 決定版修正: SRCとMODEに.trim()を追加して前後の空白を削除
+                    const sourceId = (actParams.SRC || "").replace(/^"|"$/g, '').trim(); 
+                    const mode = (actParams.MODE || "READ").replace(/^"|"$/g, '').trim();
 
                     if (mode === 'READ') {
                         const sourceElement = document.getElementById(sourceId);
@@ -547,14 +547,13 @@ END ACT
                 // --- [v9.0新規] 公理: ACT STRING (文字列操作) ---
                 if (actName === 'STRING') {
                     const K = actParams.K;
-                    // ⭐ 決定的な修正: OPがundefinedの場合に備えて空文字列を渡し、replaceが失敗しないようにする
-                    const OP = (actParams.OP || "").replace(/^"|"$/g, ''); 
+                    // ⭐ 決定版修正: OPに.trim()を追加して前後の空白を削除
+                    const OP = (actParams.OP || "").replace(/^"|"$/g, '').trim(); 
 
                     if (OP === 'CONCAT') {
                         let result = "";
                         let i = 1;
                         while (actParams[`V${i}`] !== undefined) {
-                            // actParams[`V${i}`]がundefinedの場合に備える
                             const rawVal = actParams[`V${i}`] || ""; 
                             const val = resolveValue(rawVal.replace(/^"|"$/g, ''));
                             result += val.toString();
@@ -592,7 +591,7 @@ END ACT
                     } catch (e) {
                         logAudit('ERROR', `ACT実行失敗: ${e.message} [コード: ${actBlock.substring(0, 50)}...]`);
                         overallStatus = "ERROR";
-                        break; // エラー発生時に中断
+                        break; 
                     }
                 }
                 
