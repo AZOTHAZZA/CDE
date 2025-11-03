@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v9.0 (IO/STRING) - FIXED-v3</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v0(4)</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -98,9 +98,9 @@
 </head>
 <body>
     <div id="cde-container">
-        <h1 style="color: #ff9900;">CalcLang CDE v9.0 (FIXED-v3)</h1>
+        <h1 style="color: #ff9900;">CalcLang CDE v0(4)</h1>
         <p style="color: #ccc; font-size: small;">
-            コアのACT STRING/IOパーサーの空白処理を修正しました。
+            コアの全パラメータ処理に防御的措置を適用しました。
         </p>
 
         <p>
@@ -283,7 +283,7 @@ END ACT
             function init() {
                 REGISTRY = JSON.parse(JSON.stringify(DEFAULT_REGISTRY));
                 updateUI();
-                logAudit('INIT', '数理的沈黙のプログラミング v9.0 FIXED-v3が起動しました。');
+                logAudit('INIT', '数理的沈黙のプログラミング v0(4)が起動しました。');
             }
             
             function parseCalcCode(code) {
@@ -440,7 +440,7 @@ END ACT
                 // --- 既存公理: ACT CALC --- 
                 if (actName === 'CALC') {
                     const K = actParams.K;
-                    // ⭐ CALC OPに.trim()を追加
+                    // ⭐ .trim()を追加
                     const OP = (actParams.OP || "").replace(/^"|"$/g, '').trim(); 
                     const V1 = resolveValue(actParams.V1);
                     const V2 = resolveValue(actParams.V2);
@@ -522,7 +522,7 @@ END ACT
                     return "SUCCESS";
                 }
 
-                // --- [v9.0新規] 公理: ACT IO (入出力) ---
+                // --- [v0(4) 修正] 公理: ACT IO (入出力) ---
                 if (actName === 'IO') {
                     const key = actParams.K;
                     // ⭐ 決定版修正: SRCとMODEに.trim()を追加して前後の空白を削除
@@ -544,7 +544,7 @@ END ACT
                     return "SUCCESS";
                 }
                 
-                // --- [v9.0新規] 公理: ACT STRING (文字列操作) ---
+                // --- [v0(4) 修正] 公理: ACT STRING (文字列操作) ---
                 if (actName === 'STRING') {
                     const K = actParams.K;
                     // ⭐ 決定版修正: OPに.trim()を追加して前後の空白を削除
