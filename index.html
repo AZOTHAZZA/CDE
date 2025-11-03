@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v0(4)</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v0(5) [コア検証モード]</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -53,7 +53,7 @@
         .btn-run { background-color: #a47fe0; color: white;}
         .btn-run:hover { background-color: #b993f7; }
 
-        /* CalcHost 出力エリア */
+        /* CalcHost 出力エリアは純粋な白紙のため不要だが、形式的に残す */
         #calchost-output {
             margin-top: 30px;
             padding: 20px;
@@ -75,7 +75,7 @@
             padding: 10px;
             border: 1px solid #c93b3b;
             background-color: #1a1a2e;
-            max-height: 150px;
+            max-height: 200px; /* ログエリアを広げる */
             overflow-y: scroll;
             font-size: 12px;
             color: #bbb;
@@ -84,23 +84,13 @@
             border-bottom: 1px dotted #333;
             padding: 3px 0;
         }
-        /* [v9.0新規] ユーザー入力エリア */
-        #input-area {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            background-color: #2a3a4e;
-            color: #d4d4d4;
-            border: 1px solid #22a7f0;
-            box-sizing: border-box;
-        }
     </style>
 </head>
 <body>
     <div id="cde-container">
-        <h1 style="color: #ff9900;">CalcLang CDE v0(4)</h1>
+        <h1 style="color: #ff9900;">CalcLang CDE v0(5)</h1>
         <p style="color: #ccc; font-size: small;">
-            コアの全パラメータ処理に防御的措置を適用しました。
+            **純粋な数理的沈黙のメモ帳**を安定させるための、コア検証モードです。**全ての応用ロジックと外部依存要素を削除しました。**
         </p>
 
         <p>
@@ -109,117 +99,50 @@
             <strong>REGISTRY_VARS:</strong> <span id="vars-value" style="font-size: small;">{}</span>
         </p>
 
-        <label for="input-area" style="display: block; margin-top: 15px;">
-            **🌐 外部データ入力 (ID: input-area)**
-        </label>
-        <input type="text" id="input-area" value="発行">
-        
         <label for="calc-code" style="display: block; margin-top: 15px;">
-            CalcLang 論理記述 (ACT公理 - S式):
+            CalcLang 論理記述 (ACT公理 - 最小テスト):
         </label>
         <textarea id="calc-code">
-// --- ⚙️ I. 初期経済・AI状態の定義 ---
-ACT LET (K: USER_BALANCE, V: 50)
+// --- ⚙️ コア公理の最小テスト ---
+ACT LET (K: TEST_A, V: 10)
 END ACT
-ACT LET (K: MINT_LIMIT, V: 100)    
-END ACT
-ACT LET (K: MINT_AMOUNT, V: 30)    
-
-// AI/文脈関連の初期化 
-ACT LET (K: PROMPT_HISTORY, V: "セッション開始") 
-END ACT
-ACT LET (K: CONFIDENCE_SCORE, V: 0)  
-END ACT
-ACT LET (K: NEXT_ACTION, V: "WAIT")  
-END ACT
-ACT LET (K: DEDUCE_STATUS, V: "IDLE") 
-END ACT
-ACT LET (K: MINT_STATUS, V: "0") 
-
-// --- 📥 ACT IO: 外部データの読み込み ---
-ACT IO (K: USER_QUERY, SRC: "input-area", MODE: "READ") 
+ACT LET (K: TEST_B, V: "START")
 END ACT
 
-// --- 📝 ACT STRING: AIの文脈生成 ---
-ACT STRING (K: FULL_CONTEXT, OP: "CONCAT", V1: PROMPT_HISTORY, V2: " " , V3: USER_QUERY)
+// ACT CALC のテスト
+ACT CALC (K: TEST_C, OP: "ADD", V1: TEST_A, V2: 5)
 END ACT
 
-// ===============================================
-// 🧠 II. AI推論ロジック (擬似 ACT DEDUCE)
-// ===============================================
+// ACT STRING のテスト (空白・クォート処理の防御を確認)
+ACT STRING (K: TEST_D, OP: "CONCAT", V1: TEST_B, V2: " - ", V3: "SUCCESS")
+END ACT
 
-// --- 1. 推論計算 --- (ユーザー入力が "発行" の場合)
-ACT IF (CONDITION: USER_QUERY == "発行") 
-    
-    ACT CALC (K: CONFIDENCE_SCORE, OP: "ADD", V1: CONFIDENCE_SCORE, V2: 0.9)
-    END ACT
-    
-    ACT LET (K: NEXT_ACTION, V: "MINT")
-    END ACT
-    
-    ACT LET (K: DEDUCE_STATUS, V: "APPROVED") 
+// ACT IF のテスト (数値比較)
+ACT IF (CONDITION: TEST_C >= 15)
+    ACT LET (K: STATUS_1, V: "IF_TRUE_NUM")
     END ACT
 END ACT
 
-
-// --- 2. 暴走抑止 (AI側の最終チェック) ---
-ACT IF (CONDITION: CONFIDENCE_SCORE < 0.5)
-    ACT LET (K: NEXT_ACTION, V: "WAIT") 
-    END ACT
-    ACT LET (K: DEDUCE_STATUS, V: "REJECTED") 
+// ACT IF のテスト (文字列比較 - 厳密な文字が沈黙しているか確認)
+ACT IF (CONDITION: TEST_B == "START")
+    ACT LET (K: STATUS_2, V: "IF_TRUE_STR")
     END ACT
 END ACT
 
-// ===============================================
-// 💰 III. 経済作用実行ロジック (擬似 ACT MINT)
-// ===============================================
-
-// --- 3. AI提案の承認 ---
-ACT IF (CONDITION: NEXT_ACTION == "MINT")
-
-    // a. 発行後の残高を計算 (50 + 30 = 80)
-    ACT CALC (K: NEW_BALANCE, OP: "ADD", V1: USER_BALANCE, V2: MINT_AMOUNT)
-    END ACT
-
-    // b. 暴走抑止チェック (上限超過なしの確認: 80 < 100 -> TRUE)
-    ACT IF (CONDITION: NEW_BALANCE < MINT_LIMIT)
-        
-        ACT LET (K: USER_BALANCE, V: NEW_BALANCE) 
-        END ACT
-        ACT LET (K: MINT_STATUS, V: "1") 
-        END ACT
-        
-    END ACT
-    ACT IF (CONDITION: NEW_BALANCE >= MINT_LIMIT)
-        ACT LET (K: MINT_STATUS, V: "-1") 
-        END ACT
-        ACT LET (K: DEDUCE_STATUS, V: "BLOCKED") 
-        END ACT
+// ACT LOOP のテスト
+ACT LOOP (COUNT: 2)
+    ACT CALC (K: TEST_C, OP: "ADD", V1: TEST_C, V2: 1)
     END ACT
 END ACT
 
-// ===============================================
-// 🖼️ IV. 最終的な監査結果の描画
-// ===============================================
-ACT DEPLOY
-    ['div', {'style': 'padding: 15px; background-color: #0c0b43; border-radius: 5px; border: 1px solid #22a7f0;'}, [
-        ['h3', {'style': 'color': '#fff;'}, ['✅ 自律経済システム (AES) 監査報告']],
-        ['p', {'style': 'border-bottom: 1px dotted #444; padding-bottom: 5px;'}, ['🔄 最終サイクル', REGISTRY_CYCLE]],
-        ['p', {'style': 'color': '#22a7f0;'}, ['📝 AI文脈', FULL_CONTEXT]],
-        ['p', {'style': 'color': '#f0f090;'}, ['🧠 AI提案アクション', NEXT_ACTION]],
-        ['p', {'style': 'color': '#90f090;'}, ['AI監査ステータス', DEDUCE_STATUS]],
-        ['p', {'style': 'color': '#90f090;'}, ['経済監査ステータス', MINT_STATUS, ' (1=成功)']],
-        ['p', {'style': 'color': '#fff; font-weight: bold; margin-top: 10px;'}, ['💰 最終残高', USER_BALANCE]],
-        ['p', {}, ['MINT上限', MINT_LIMIT]]
-    ]]
-END ACT
+// --- ACT IO と ACT DEPLOY は、この検証モードでは削除されています ---
         </textarea>
         
         <button class="btn btn-run" onclick="CalcOS.executeLogic()">
             ▶️ 作為を VM で実行 (Execute)
         </button>
-        <button class="btn btn-run" onclick="CalcOS.renderHost()">
-            🖼️ CalcHostへ描画 (ACT RENDER)
+        <button class="btn btn-run" disabled style="background-color: #333;">
+            🖼️ CalcHostへ描画 (無効)
         </button>
         
         <h3 style="color: #ff5757; margin-top: 20px;">📜 Calc-Audit Log (監査記録)</h3>
@@ -228,9 +151,9 @@ END ACT
     </div>
     
     <div id="calchost-output">
-        <h2>🌐 CalcHost - 論理的描画領域</h2>
+        <h2>🌐 CalcHost - 論理的描画領域 (沈黙中)</h2>
         <div id="calchost-content">
-            CalcHostの初期沈黙状態... (ACT RENDERを実行してください)
+            CalcHost: 描画公理 (ACT DEPLOY) は、沈黙のメモ帳の安定化のため無効化されています。
         </div>
     </div>
 
@@ -248,7 +171,7 @@ END ACT
             const DEFAULT_REGISTRY = {
                 REGISTRY_CYCLE: 0, 
                 REGISTRY_VARS: {}, 
-                REGISTRY_HOST_S_EXPR: null, 
+                REGISTRY_HOST_S_EXPR: null, // DEPLOY削除により未使用
                 REGISTRY_AUDIT_LOG: [],
             };
             const COMPARISON_OPS = {
@@ -283,7 +206,7 @@ END ACT
             function init() {
                 REGISTRY = JSON.parse(JSON.stringify(DEFAULT_REGISTRY));
                 updateUI();
-                logAudit('INIT', '数理的沈黙のプログラミング v0(4)が起動しました。');
+                logAudit('INIT', '数理的沈黙のプログラミング v0(5) [コア検証モード]が起動しました。');
             }
             
             function parseCalcCode(code) {
@@ -350,6 +273,7 @@ END ACT
             }
 
             function substituteVars(text) {
+                // コア検証モードでは変数置換は最小限
                 let substitutedText = text;
                 substitutedText = substitutedText.replace(/REGISTRY_CYCLE/g, REGISTRY.REGISTRY_CYCLE);
 
@@ -387,33 +311,7 @@ END ACT
                 return operatorFn(v1.toString(), v2.toString());
             }
 
-            function renderSExpr(sExpr) {
-                if (typeof sExpr === 'string') {
-                    return document.createTextNode(substituteVars(sExpr));
-                }
-                
-                const [tagName, attributes, childrenArray] = sExpr;
-                const children = Array.isArray(childrenArray) ? childrenArray : [];
-                
-                if (typeof tagName !== 'string' || typeof attributes !== 'object') {
-                    throw new Error(`Invalid S-Expr header: ${tagName}, ${attributes}`);
-                }
-
-                const element = document.createElement(tagName);
-
-                for (const key in attributes) {
-                    if (attributes.hasOwnProperty(key)) {
-                        element.setAttribute(key, substituteVars(attributes[key]));
-                    }
-                }
-
-                for (const child of children) {
-                    element.appendChild(renderSExpr(child));
-                }
-
-                return element;
-            }
-
+            // ACT DEPLOY / RENDER 関連関数は削除
 
             // Calc-VM (ACT公理実行エンジン) - 実行本体
             function vmExecuteAct(act) {
@@ -508,46 +406,22 @@ END ACT
                     return "SUCCESS";
                 }
                 
-                // --- 既存公理: ACT DEPLOY --- 
+                // --- ACT DEPLOY はコア検証モードでは削除 ---
                 if (actName === 'DEPLOY') {
-                    try {
-                        const parsedSExpr = JSON.parse(act.body); 
-                        REGISTRY.REGISTRY_HOST_S_EXPR = parsedSExpr; 
-                        REGISTRY.REGISTRY_CYCLE += 1;
-                        logAudit('SUCCESS', 'ACT DEPLOYが完了。S式がREGISTRYに格納されました。');
-                    } catch (e) {
-                        logAudit('ERROR', `DEPLOY失敗: S式パースエラー: ${e.message}`);
-                        throw new Error("DEPLOY失敗");
-                    }
-                    return "SUCCESS";
-                }
-
-                // --- [v0(4) 修正] 公理: ACT IO (入出力) ---
-                if (actName === 'IO') {
-                    const key = actParams.K;
-                    // ⭐ 決定版修正: SRCとMODEに.trim()を追加して前後の空白を削除
-                    const sourceId = (actParams.SRC || "").replace(/^"|"$/g, '').trim(); 
-                    const mode = (actParams.MODE || "READ").replace(/^"|"$/g, '').trim();
-
-                    if (mode === 'READ') {
-                        const sourceElement = document.getElementById(sourceId);
-                        if (!sourceElement) {
-                            throw new Error(`IO失敗: 参照ID '${sourceId}' の要素が見つかりません。`);
-                        }
-                        const value = sourceElement.value;
-                        REGISTRY.REGISTRY_VARS[key] = value;
-                        REGISTRY.REGISTRY_CYCLE += 1;
-                        logAudit('SUCCESS', `ACT IO (READ) が完了: ${key} <- "${value}" (from #${sourceId})`);
-                    } else {
-                        throw new Error(`IO失敗: 未知のモード '${mode}' です。`);
-                    }
+                    logAudit('AUDIT', 'ACT DEPLOYはコア検証モードのためスキップされました。');
                     return "SUCCESS";
                 }
                 
-                // --- [v0(4) 修正] 公理: ACT STRING (文字列操作) ---
+                // --- ACT IO はコア検証モードでは削除 ---
+                if (actName === 'IO') {
+                    logAudit('AUDIT', 'ACT IOはコア検証モードのためスキップされました。');
+                    return "SUCCESS";
+                }
+                
+                // --- [v0(5) 修正] 公理: ACT STRING (文字列操作) ---
                 if (actName === 'STRING') {
                     const K = actParams.K;
-                    // ⭐ 決定版修正: OPに.trim()を追加して前後の空白を削除
+                    // ⭐ .trim()を追加
                     const OP = (actParams.OP || "").replace(/^"|"$/g, '').trim(); 
 
                     if (OP === 'CONCAT') {
@@ -593,6 +467,7 @@ END ACT
                         overallStatus = "ERROR";
                         break; 
                     }
+                    if (overallStatus === "ERROR") break; 
                 }
                 
                 return { status: overallStatus, reason: overallStatus === "SUCCESS" ? "ALL_ACTS_EXECUTED" : "EXECUTION_ERROR" };
@@ -607,23 +482,9 @@ END ACT
                     return result;
                 },
                 renderHost: function() {
-                    $calcHostContent.innerHTML = ''; 
-                    
-                    const sExpr = REGISTRY.REGISTRY_HOST_S_EXPR;
-
-                    if (!sExpr) {
-                        $calcHostContent.innerHTML = 'CalcHost: DEPLOYが実行されていません。';
-                        return;
-                    }
-
-                    try {
-                        const renderedElement = renderSExpr(sExpr);
-                        $calcHostContent.appendChild(renderedElement); 
-                        logAudit('RENDER', 'CalcHostへのS式描画 (ACT RENDER) を実行しました。');
-                    } catch (e) {
-                        logAudit('ERROR', `ACT RENDER失敗: 描画中にエラーが発生: ${e.message}`);
-                        $calcHostContent.innerHTML = `<p style="color: red; padding: 10px;">RENDER ERROR: ${e.message}</p>`;
-                    }
+                    // コア検証モードではRENDER機能はスキップ
+                    $calcHostContent.innerHTML = 'CalcHost: 描画公理 (ACT DEPLOY) は、沈黙のメモ帳の安定化のため無効化されています。';
+                    logAudit('AUDIT', 'RENDER機能はコア検証モードのため無効化されています。');
                     updateUI();
                 },
             };
