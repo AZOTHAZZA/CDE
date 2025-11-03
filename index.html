@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v9.0 (IO/STRING) - FIXED</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v9.0 (IO/STRING) - FIXED-v2</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -98,9 +98,9 @@
 </head>
 <body>
     <div id="cde-container">
-        <h1 style="color: #ff9900;">CalcLang CDE v9.0 (FIXED)</h1>
+        <h1 style="color: #ff9900;">CalcLang CDE v9.0 (FIXED-v2)</h1>
         <p style="color: #ccc; font-size: small;">
-            コアのACT LETパーサーを修正しました。
+            コアのACT STRING/IOパーサーを防御的に修正しました。
         </p>
 
         <p>
@@ -125,7 +125,7 @@ ACT LET (K: MINT_LIMIT, V: 100)
 END ACT
 ACT LET (K: MINT_AMOUNT, V: 30)    
 
-// AI/文脈関連の初期化 (デリミタ問題を避けた安全な文字列)
+// AI/文脈関連の初期化 
 ACT LET (K: PROMPT_HISTORY, V: "セッション開始") 
 END ACT
 ACT LET (K: CONFIDENCE_SCORE, V: 0)  
@@ -141,7 +141,6 @@ ACT IO (K: USER_QUERY, SRC: "input-area", MODE: "READ")
 END ACT
 
 // --- 📝 ACT STRING: AIの文脈生成 ---
-// V2にスペースのみの文字列定数を使用
 ACT STRING (K: FULL_CONTEXT, OP: "CONCAT", V1: PROMPT_HISTORY, V2: " " , V3: USER_QUERY)
 END ACT
 
@@ -284,7 +283,7 @@ END ACT
             function init() {
                 REGISTRY = JSON.parse(JSON.stringify(DEFAULT_REGISTRY));
                 updateUI();
-                logAudit('INIT', '数理的沈黙のプログラミング v9.0 FIXEDが起動しました。');
+                logAudit('INIT', '数理的沈黙のプログラミング v9.0 FIXED-v2が起動しました。');
             }
             
             function parseCalcCode(code) {
@@ -317,7 +316,7 @@ END ACT
                 }
                 
                 const params = {};
-                // ⭐ ACT LETの解析バグ回避のための修正ロジックをここに組み込む
+                // ACTの引数解析
                 paramsStr.split(',').forEach(param => {
                     const parts = param.trim().split(':').map(p => p.trim());
                     if (parts.length === 2) {
@@ -346,7 +345,7 @@ END ACT
                     return num;
                 }
                 
-                // ⭐ ACT STRINGの連結用文字列定数を正しく扱うための修正
+                // ⭐ 文字列リテラルを返す
                 return keyOrLiteral;
             }
 
@@ -355,6 +354,7 @@ END ACT
                 substitutedText = substitutedText.replace(/REGISTRY_CYCLE/g, REGISTRY.REGISTRY_CYCLE);
 
                 for (const key in REGISTRY.REGISTRY_VARS) {
+                    // 正規表現のコンパイルをループ外で行うのは非効率なため、このロジックは簡略化
                     const regex = new RegExp(key, 'g'); 
                     substitutedText = substitutedText.replace(regex, REGISTRY.REGISTRY_VARS[key]);
                 }
@@ -426,8 +426,6 @@ END ACT
                     const key = actParams.K;
                     let value = actParams.V;
                     
-                    // ⭐ 修正ポイント: resolveValueがクォートされた文字列を正しく処理するよう、
-                    //                ここでは文字列の先頭/末尾のクォートを除去しない
                     const resolvedValue = resolveValue(value);
                     
                     if (key && resolvedValue !== undefined) {
@@ -443,7 +441,7 @@ END ACT
                 // --- 既存公理: ACT CALC --- 
                 if (actName === 'CALC') {
                     const K = actParams.K;
-                    const OP = actParams.OP.replace(/^"|"$/g, ''); // クォートを除去
+                    const OP = (actParams.OP || "").replace(/^"|"$/g, ''); // ⭐ 修正: 防御的なコード追加
                     const V1 = resolveValue(actParams.V1);
                     const V2 = resolveValue(actParams.V2);
                     if (typeof V1 !== 'number' || typeof V2 !== 'number') {
@@ -527,8 +525,9 @@ END ACT
                 // --- [v9.0新規] 公理: ACT IO (入出力) ---
                 if (actName === 'IO') {
                     const key = actParams.K;
-                    const sourceId = actParams.SRC.replace(/^"|"$/g, ''); // クォートを除去
-                    const mode = actParams.MODE.replace(/^"|"$/g, '') || 'READ';
+                    // ⭐ 修正点: SRCとMODEに防御的なコード追加
+                    const sourceId = (actParams.SRC || "").replace(/^"|"$/g, ''); 
+                    const mode = (actParams.MODE || "READ").replace(/^"|"$/g, '');
 
                     if (mode === 'READ') {
                         const sourceElement = document.getElementById(sourceId);
@@ -548,14 +547,16 @@ END ACT
                 // --- [v9.0新規] 公理: ACT STRING (文字列操作) ---
                 if (actName === 'STRING') {
                     const K = actParams.K;
-                    const OP = actParams.OP.replace(/^"|"$/g, ''); // クォートを除去
+                    // ⭐ 決定的な修正: OPがundefinedの場合に備えて空文字列を渡し、replaceが失敗しないようにする
+                    const OP = (actParams.OP || "").replace(/^"|"$/g, ''); 
 
                     if (OP === 'CONCAT') {
                         let result = "";
                         let i = 1;
                         while (actParams[`V${i}`] !== undefined) {
-                            // resolveValueを通す前にクォートを除去
-                            const val = resolveValue(actParams[`V${i}`].replace(/^"|"$/g, ''));
+                            // actParams[`V${i}`]がundefinedの場合に備える
+                            const rawVal = actParams[`V${i}`] || ""; 
+                            const val = resolveValue(rawVal.replace(/^"|"$/g, ''));
                             result += val.toString();
                             i++;
                         }
