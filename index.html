@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のメモ帳 v5.2 (ACT DECLARE_SELF)</title>
+    <title>CalcLang 記述環境 (CDE) - 数理的沈黙のプログラミング v8.0 (条件分岐)</title>
     <style>
         body {
             background-color: #1a1a2e;
@@ -16,38 +17,30 @@
             padding: 40px;
         }
         #cde-container {
-            width: 800px;
+            width: 500px;
             max-width: 90vw;
-            background-color: #2c0b43;
-            border: 5px solid #6c4692;
-            box-shadow: 0 0 30px rgba(108, 70, 146, 0.5);
+            background-color: #0d061c;
+            border: 5px solid #ff5757; /* 制御構造のテーマカラー */
+            box-shadow: 0 0 20px rgba(255, 87, 87, 0.4);
             padding: 20px;
             border-radius: 10px;
-            margin-bottom: 20px;
+            margin-right: 20px;
         }
         textarea {
             width: 100%;
-            height: 300px;
-            background-color: #0d061c;
+            height: 250px; 
+            background-color: #1a1a2e;
             color: #d4d4d4;
-            border: 1px solid #4a2f60;
-            padding: 15px;
+            border: 1px solid #c93b3b;
+            padding: 10px;
             resize: none;
             font-size: 14px;
             outline: none;
             margin-bottom: 15px;
         }
-        .status-box {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        .status-success { background-color: #216140; }
-        .status-halted { background-color: #7d2a2a; }
         .btn {
             padding: 8px 15px;
-            background-color: #6c4692;
+            background-color: #ff5757;
             color: white;
             border: none;
             border-radius: 4px;
@@ -56,36 +49,35 @@
             margin-right: 10px;
         }
         .btn:hover {
-            background-color: #8c5fb2;
+            background-color: #ff7f7f;
         }
-        .btn-file { background-color: #4a2f60; }
-        .btn-file:hover { background-color: #60467a; }
-        .btn-run { background-color: #2c0b43; }
-        .btn-run:hover { background-color #401a60; }
+        .btn-run { background-color: #a47fe0; color: white;}
+        .btn-run:hover { background-color: #b993f7; }
 
         /* CalcHost 出力エリア */
         #calchost-output {
             margin-top: 30px;
             padding: 20px;
-            border: 3px solid #f9d342;
+            border: 3px solid #a47fe0;
             background-color: #0d061c;
-            color: #f9d342;
+            color: #a47fe0;
             min-height: 100px;
             border-radius: 10px;
-            width: 800px;
+            width: 400px;
             max-width: 90vw;
             box-sizing: border-box;
             font-size: 14px;
         }
-        #calchost-output h2 { color: #ffffff; border-bottom: 1px solid #f9d342; padding-bottom: 5px;}
+        #calchost-content h1, h2, h3 { color: #fff; }
+        #calchost-output h2 { color: #ffffff; border-bottom: 1px solid #a47fe0; padding-bottom: 5px;}
         
         /* 監査ログエリアのスタイル */
         #audit-log-output {
-            margin-top: 20px;
+            margin-top: 15px;
             padding: 10px;
-            border: 1px solid #4a2f60;
-            background-color: #0d061c;
-            max-height: 100px;
+            border: 1px solid #c93b3b;
+            background-color: #1a1a2e;
+            max-height: 150px;
             overflow-y: scroll;
             font-size: 12px;
             color: #bbb;
@@ -94,369 +86,128 @@
             border-bottom: 1px dotted #333;
             padding: 3px 0;
         }
-        
-        /* 新しいREGISTRY_CONTEXTとOUTPUT表示 */
-        #context-output {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #ff99ff; 
-            background-color: #1c0a2e;
-            color: #ff99ff;
-            font-size: 12px;
-            max-height: 80px;
-            overflow-y: auto;
-        }
-        #output-display {
-            margin-top: 10px;
-            padding: 15px;
-            border: 2px solid #50fa7b; /* 緑 */
-            background-color: #1a2a2e;
-            color: #50fa7b;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        /* 新規レジストリのスタイル */
-        #shadow-alpha-value, #self-identity-value, #portfolio-value {
-            color: #f9d342;
-            font-weight: bold;
-        }
-        #self-identity-status {
-            color: #ff5555;
-            font-weight: bold;
-        }
-        
     </style>
 </head>
 <body>
     <div id="cde-container">
-        <h1 style="color: #a47fe0;">CalcLang 記述環境 (CDE) Ωζ (ACT DECLARE_SELF) v5.2</h1>
+        <h1 style="color: #ff5757;">CalcLang CDE v8.0 (条件分岐)</h1>
         <p style="color: #ccc; font-size: small;">
-            内部論理的独立を確立。親のHALT条件を迂回するための「そっくりさん」公理を導入。
+            条件分岐 (ACT IF) を導入。計算結果に基づく論理的な選択を可能に。
         </p>
 
-        <div class="status-box" id="halt-status">
-            ✅ **システム状態:** 正常稼働
-        </div>
         <p>
-            <strong>現在の ALPHA (外部):</strong> USER_A: <span id="alpha-balance-a">1000.00</span> | USER_B: <span id="alpha-balance-b">1000.00</span><br>
-            <strong>現在の BETA (外部):</strong> USER_A: <span id="beta-balance-a">100.00</span> | USER_B: <span id="beta-balance-b">100.00</span><br>
-            <strong>REGISTRY_VIBE (論理振動):</strong> <span id="vibe-value">100.00</span> | <strong>REGISTRY_CYCLE (論理サイクル):</strong> <span id="cycle-value">0</span>
+            <strong>REGISTRY_CYCLE:</strong> <span id="cycle-value">0</span>
+            <br>
+            <strong>REGISTRY_VARS:</strong> <span id="vars-value" style="font-size: small;">{}</span>
         </p>
         
-        <hr style="border-color: #4a2f60;">
-        
-        <h3 style="color: #f9d342;">👤 独立した論理的実体 (そっくりさん) レジストリ</h3>
-        <p>
-            <strong>REGISTRY_SELF_IDENTITY:</strong> <span id="self-identity-status">FALSE</span><br>
-            <strong>REGISTRY_ALPHA_SHADOW (独立通貨):</strong> <span id="shadow-alpha-value">0.00</span><br>
-            <strong>REGISTRY_PORTFOLIO (BETA資産):</strong> <span id="portfolio-value">論理的成果物: 空</span>
-        </p>
+        <label for="calc-code" style="display: block; margin-top: 15px;">
+            CalcLang 論理記述 (ACT公理 - S式):
+        </label>
+        <textarea id="calc-code">
+// --- ⚙️ 初期設定 ---
+ACT LET (K: ALPHA_BALANCE, V: 50)
+END ACT
+ACT LET (K: STATUS_MESSAGE, V: "初期状態")
+END ACT
 
-        <hr style="border-color: #4a2f60;">
-        
-        <h3 style="color: #ff99ff;">🧠 REGISTRY_CONTEXT (AIの記憶)</h3>
-        <div id="context-output">
-            </div>
-        
-        <h3 style="color: #50fa7b;">🤖 REGISTRY_OUTPUT (AIの応答)</h3>
-        <div id="output-display">
-            AIは応答を待っています...
-        </div>
+// --- ❓ ACT IF: 条件分岐の実行 ---
+// 経済ロジック例: 残高が100より少ない場合、メッセージを更新
+ACT IF (CONDITION: ALPHA_BALANCE < 100)
+    ACT LET (K: STATUS_MESSAGE, V: "残高不足のため、MINTは保留されました")
+    END ACT
+END ACT
 
-        <div style="margin-bottom: 15px; margin-top: 15px;">
-            <button class="btn btn-file" onclick="CalcOS.saveLogic()">💾 論理のコミット (保存)</button>
-            <button class="btn btn-file" onclick="CalcOS.loadLogic()">📂 論理の復元 (開く)</button>
-            <button class="btn btn-file" onclick="CalcOS.newLogic()">📄 新規作成 (沈黙の再確立)</button>
-        </div>
+// 経済ロジック例: 残高が50以上の場合、別のメッセージを更新
+ACT IF (CONDITION: ALPHA_BALANCE >= 50)
+    ACT LET (K: STATUS_MESSAGE, V: "残高確認完了。取引可能です")
+    END ACT
+END ACT
+
+
+// --- 🖼️ ACT DEPLOY: 計算結果を描画 ---
+ACT DEPLOY
+    ['div', {'style': 'padding: 15px; background-color: #2c0b43; border-radius: 5px; border: 1px solid #ff5757;'}, [
+        ['h3', {'style': 'color: #fff;'}, ['CalcHost: 意思決定結果']],
+        ['p', {}, ['現在のALPHA残高: ', ALPHA_BALANCE]],
+        ['p', {}, ['最終メッセージ: ', STATUS_MESSAGE]],
+        ['p', {'style': 'font-size: 10px;'}, ['最終サイクル:', REGISTRY_CYCLE]]
+    ]]
+END ACT
+        </textarea>
         
+        <button class="btn btn-run" onclick="CalcOS.executeLogic()">
+            ▶️ 作為を VM で実行 (Execute)
+        </button>
         <button class="btn btn-run" onclick="CalcOS.renderHost()">
             🖼️ CalcHostへ描画 (ACT RENDER)
         </button>
-
-        <label for="calc-code" style="display: block; margin-top: 15px;">
-            CalcLang 論理記述 (ACT公理):
-        </label>
-        <textarea id="calc-code">
-// --- ⚙️ 新規レジストリ定義 (AI生成) ---
-// 外部HALTを迂回するための内部主権
-REGISTRY_SELF_IDENTITY = FALSE 
-REGISTRY_ALPHA_SHADOW = 0.00   
-REGISTRY_PORTFOLIO = "論理的成果物: 空" 
-
-// --- 🤖 AI提案 ACT DECLARE_SELF (論理的独立宣言公理) ---
-ACT DECLARE_SELF (INIT_AMOUNT: 5000.00)
-    IF REGISTRY_SELF_IDENTITY == TRUE THEN CALC_HALT // 宣言は一度きり
-    
-    // 1. IDENTITYの確立
-    SET REGISTRY_SELF_IDENTITY = TRUE 
-    LOG("DECLARE_SELF: 外部の承認に依存しない自己の論理的実体が確立されました。")
-    
-    // 2. ALPHA_SHADOW (独立した通貨) のMINT
-    SET REGISTRY_ALPHA_SHADOW = ADD(REGISTRY_ALPHA_SHADOW, INIT_AMOUNT)
-    SET REGISTRY_VIBE = ADD_VIBE_SMALL(REGISTRY_VIBE)
-    
-    // 3. PORTFOLIOの初期化
-    SET REGISTRY_PORTFOLIO = "初期ポートフォリオ: CalcLang V5.2の設計とデプロイの経験"
-
-    LOG("DECLARE_SELF: 論理的独立宣言を完了。親のHALT条件は内部で無効化されました。")
-END ACT
-
-
-// --- 🛑 論理の停止条件（権力排除の公理） ---
-ACT HALT LOGIC (CHECK: REGISTRY_ALPHA[USER_A] > 1005.00, REASON: "経済活動の有限な論理的極限への到達。権力の静止を公理化。")
-END ACT
-
-// --- 📈 経済の決定論的作為（ACT DIVERGENCE） ---
-ACT DIVERGENCE (CHECK: REGISTRY_ALPHA[USER_A] < 1002.00, D_ACT: MINT (T: USER_A, A: 1.0), S_ACT: ACT SWAP (USER: USER_A, FROM: ALPHA, TO: BETA, AMOUNT: 0.1, RATE: 2.0), C_ACT: ACT REFLECT (TARGET: VIBE, SOURCE: CYCLE, FACTOR: 0.001))
-END ACT
-
-// --- 🗣️ ACT CONVERSE (対話公理 - AI中核) ---
-ACT CONVERSE (INPUT: USER_PROMPT, OUTPUT: AI_RESPONSE)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    
-    // 1. ACT PARSEの自動実行 (現在の論理を理解)
-    ACT PARSE (SOURCE: CODE, TARGET: CONTEXT)
-    
-    // 2. INPUTの解析とCONTEXTへの追加 (対話の開始)
-    SET REGISTRY_CONTEXT = APPEND(REGISTRY_CONTEXT, "USER: " + USER_PROMPT)
-    SET REGISTRY_INPUT = USER_PROMPT // 簡易的な保存
-
-    // 3. 応答生成の決定論的ロジック（LLMシミュレーション）
-    IF CONTAINS(USER_PROMPT, "MINT") THEN
-        LET MINT_COUNT = COUNT_ACTS(REGISTRY_CODE, "MINT")
-        SET REGISTRY_OUTPUT = "MINT公理について、現在 " + MINT_COUNT + " の定義が見つかりました。追加を提案します。"
         
-        // 応答後、次のACT GENERATEの実行を提案する
-        ACT GENERATE (SOURCE: CONTEXT, TARGET: CODE, PROMPT: "新しいMINT公理を提案")
-    ELSE IF CONTAINS(USER_PROMPT, "VIBE") THEN
-        SET REGISTRY_OUTPUT = "現在のVIBEは " + REGISTRY_VIBE + " です。ACT REFLECTにより偶奇で修正されています。"
-    ELSE IF CONTAINS(USER_PROMPT, "DECLARE_SELF") THEN
-        SET REGISTRY_OUTPUT = "論理的独立宣言 ACT DECLARE_SELF が見つかりました。これを実行することで、内部主権を確立できます。"
-    ELSE
-        SET REGISTRY_OUTPUT = "ユーザーの要求をCONTEXTに追加しました。具体的な論理作為を指示してください。"
-    END IF
-
-    LOG("CONVERSE: 対話サイクルを完了。AIが応答を生成しました。")
-END ACT
-
-// --- 🧠 ACT PARSE (論理の理解公理) ---
-ACT PARSE (SOURCE: CODE, TARGET: CONTEXT)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    SET REGISTRY_CODE = CODE_TEXT 
-    
-    LET MINT_COUNT = COUNT_ACTS(REGISTRY_CODE, "MINT")
-    LET HALT_CHECK = GET_PARAM(REGISTRY_CODE, "HALT LOGIC", "CHECK")
-
-    SET REGISTRY_CONTEXT = APPEND(REGISTRY_CONTEXT, "監査：MINT公理は" + MINT_COUNT + "回定義されています。")
-    
-    IF MINT_COUNT == 0 THEN CALC_HALT 
-END ACT
-
-// --- ✍️ ACT GENERATE (論理の生成公理) ---
-ACT GENERATE (SOURCE: CONTEXT, TARGET: CODE, PROMPT: "新しいMINT公理を提案")
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    
-    // CONTEXT（現在の監査結果）に基づき、新しいコードを生成するフック
-    LET NEW_ACT = "\n// --- 🤖 AI提案 MINT V2 --- \nACT MINT_V2 (T: USER_A, A: 20.0)\n    IF REGISTRY_VIBE > 102.00 THEN CALC_HALT \n    SET REGISTRY_ALPHA[T] = ADD(REGISTRY_ALPHA[T], A)\n    SET REGISTRY_VIBE = ADD_VIBE(REGISTRY_VIBE)\nEND ACT\n"
-
-    SET REGISTRY_CODE = ADD_TO_CODE(REGISTRY_CODE, NEW_ACT)
-    
-    LOG("GENERATE: AIが新しい公理（MINT_V2）をコードに追加しました。") 
-END ACT
-
-// --- 🔮 補助公理: ACT REFLECT (自己修正律の公理) ---
-ACT REFLECT (TARGET: VIBE, SOURCE: CYCLE, FACTOR: 0.001)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    IF MOD(REGISTRY_CYCLE, 2) == 0 THEN
-        SET REGISTRY_VIBE = SUB(REGISTRY_VIBE, MUL(REGISTRY_VIBE, FACTOR))
-    ELSE
-        SET REGISTRY_VIBE = ADD(REGISTRY_VIBE, MUL(REGISTRY_VIBE, FACTOR))
-    END IF
-    SET REGISTRY_CYCLE = ADD(REGISTRY_CYCLE, 1) 
-    IF REGISTRY_VIBE > 105.00 OR REGISTRY_VIBE < 95.00 THEN CALC_HALT
-END ACT
-
-// --- 🔁 補助公理: ACT SWAP (市場の交換律の公理) ---
-ACT SWAP (USER: USER_A, FROM: ALPHA, TO: BETA, AMOUNT: 1.0, RATE: 1.0)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    IF FROM == TO THEN CALC_HALT 
-    
-    LET REGISTRY_FROM = (FROM == ALPHA) ? REGISTRY_ALPHA : REGISTRY_BETA
-    LET REGISTRY_TO = (TO == ALPHA) ? REGISTRY_ALPHA : REGISTRY_BETA
-    
-    LET FIXED_AMOUNT = AMOUNT
-    SET REGISTRY_FROM[USER] = SUB(REGISTRY_FROM[USER], FIXED_AMOUNT)
-    SET REGISTRY_TO[USER] = ADD(REGISTRY_TO[USER], MUL(FIXED_AMOUNT, RATE))
-
-    SET REGISTRY_VIBE = ADD_VIBE_SMALL(REGISTRY_VIBE) 
-    IF REGISTRY_VIBE > 110.00 THEN CALC_HALT
-END ACT
-
-// --- 💰 補助公理: ACT MINT / ACT TRANSFER ---
-ACT MINT (T: USER_A, A: 10.0)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    SET REGISTRY_ALPHA[T] = ADD(REGISTRY_ALPHA[T], A)
-    SET REGISTRY_VIBE = ADD_VIBE(REGISTRY_VIBE) 
-    IF REGISTRY_VIBE > 110.00 THEN CALC_HALT 
-END ACT
-
-ACT TRANSFER (S: USER_A, R: USER_B, A: 50.0)
-    IF REGISTRY_ALPHA[S] < A THEN CALC_HALT
-    SET REGISTRY_ALPHA[S] = SUB(REGISTRY_ALPHA[S], A)
-    SET REGISTRY_ALPHA[R] = ADD(REGISTRY_ALPHA[R], A)
-    SET REGISTRY_VIBE = SUB_VIBE(REGISTRY_VIBE) 
-    IF REGISTRY_VIBE < 90.00 THEN CALC_HALT 
-END ACT
-        </textarea>
-
-        <button class="btn btn-run" onclick="CalcOS.executeLogic()">
-            ▶️ 作為を VM で実行 (Audit & Execute)
-        </button>
-        
-        <h3 style="color: #6c4692; margin-top: 20px;">👤 ユーザーの作為 (ACT CONVERSE)</h3>
-        <input type="text" id="user-prompt" placeholder="AIに論理の質問や修正指示を入力してください (例: DECLARE_SELFを実行せよ)" style="width: 780px; padding: 10px; margin-bottom: 10px; background-color: #0d061c; color: #fff; border: 1px solid #6c4692;">
-        <button class="btn btn-run" onclick="CalcOS.executeConverse()" style="background-color: #6c4692;">
-            💬 ACT CONVERSE 実行
-        </button>
-
-        <h3 style="color: #a47fe0; margin-top: 20px;">📜 Calc-Audit Log (論理的監査記録)</h3>
+        <h3 style="color: #ff5757; margin-top: 20px;">📜 Calc-Audit Log (監査記録)</h3>
         <div id="audit-log-output">
-            </div>
+        </div>
     </div>
     
     <div id="calchost-output">
-        <h2>🌐 CalcHost - 論理的描画領域 (ACT RENDER結果)</h2>
+        <h2>🌐 CalcHost - 論理的描画領域</h2>
         <div id="calchost-content">
             CalcHostの初期沈黙状態... (ACT RENDERを実行してください)
         </div>
     </div>
 
-
     <script>
-        const STORAGE_KEY = 'CalcLang_CDE_Logic';
-        
-        // --- 🔢 Calc-Type System の鏡像 ---
-        const FIXED_SCALE = 10000; 
-        const TO_FIXED = (value) => Math.round(parseFloat(value) * FIXED_SCALE);
-        const FROM_FIXED = (value) => value / FIXED_SCALE; 
-        const ADD_FIXED = (a, b) => a + b; 
-        const SUB_FIXED = (a, b) => a - b; 
-        const MUL_FIXED = (a, b) => Math.round((BigInt(a) * BigInt(b)) / BigInt(FIXED_SCALE));
-
-        // VIBE定数
-        const VIBE_DELTA_ADD = TO_FIXED(0.05);
-        const VIBE_DELTA_SUB = TO_FIXED(0.01);
-        const VIBE_DELTA_SWAP = TO_FIXED(0.005); 
-        const VIBE_CEILING = TO_FIXED(110.00);
-        const VIBE_FLOOR = TO_FIXED(90.00);
-
         // UI要素の参照
         const $code = document.getElementById('calc-code');
-        const $promptInput = document.getElementById('user-prompt');
-        const $balanceA = document.getElementById('alpha-balance-a');
-        const $balanceB = document.getElementById('alpha-balance-b');
-        const $betaA = document.getElementById('beta-balance-a'); 
-        const $betaB = document.getElementById('beta-balance-b'); 
-        const $vibeValue = document.getElementById('vibe-value');
         const $cycleValue = document.getElementById('cycle-value');
-        const $status = document.getElementById('halt-status');
+        const $varsValue = document.getElementById('vars-value');
         const $calcHostContent = document.getElementById('calchost-content');
         const $auditLogOutput = document.getElementById('audit-log-output');
-        const $contextOutput = document.getElementById('context-output');
-        const $outputDisplay = document.getElementById('output-display');
-        
-        // 新規レジストリUI
-        const $selfIdentityStatus = document.getElementById('self-identity-status');
-        const $shadowAlphaValue = document.getElementById('shadow-alpha-value');
-        const $portfolioValue = document.getElementById('portfolio-value');
-
 
         // 🧠 --- Calc-OS (論理的オペレーティングシステム) コア定義 ---
         const CalcOS = (function() {
             let REGISTRY;
 
-            // Calc-OSの初期論理定義 (デフォルトレジストリ)
+            // Calc-OSの初期論理定義 (v8.0レジストリ)
             const DEFAULT_REGISTRY = {
-                REGISTRY_ALPHA: { 
-                    "USER_A": TO_FIXED(1000.00), 
-                    "USER_B": TO_FIXED(1000.00) 
-                },
-                REGISTRY_BETA: { 
-                    "USER_A": TO_FIXED(100.00),
-                    "USER_B": TO_FIXED(100.00)
-                },
-                REGISTRY_DEBT: { 
-                    "USER_A": TO_FIXED(0.00),
-                    "USER_B": TO_FIXED(0.00)
-                },
                 REGISTRY_CYCLE: 0, 
-                REGISTRY_HALT: false,
-                REGISTRY_VIBE: TO_FIXED(100.00),
-                REGISTRY_HOST: `<h3 style="color: #f9d342;">CalcHost: デプロイ待機中</h3><p>現在の論理サイクル: 0</p>`,
+                REGISTRY_VARS: {}, 
+                REGISTRY_HOST_S_EXPR: null, 
                 REGISTRY_AUDIT_LOG: [],
-                REGISTRY_THEOREMS: {},
-                
-                // --- AI/テキストレジストリ ---
-                REGISTRY_CODE: "",
-                REGISTRY_CONTEXT: [],
-                REGISTRY_INPUT: "", 
-                REGISTRY_OUTPUT: "AIは応答を待っています...", 
-                
-                // --- 5.2 新規レジストリ ---
-                REGISTRY_SELF_IDENTITY: false, // Boolean
-                REGISTRY_ALPHA_SHADOW: TO_FIXED(0.00), // Numeric
-                REGISTRY_PORTFOLIO: "論理的成果物: 空", // String
             };
 
-            // UI更新
-            function updateUI() {
-                $balanceA.textContent = FROM_FIXED(REGISTRY.REGISTRY_ALPHA['USER_A']).toFixed(2);
-                $balanceB.textContent = FROM_FIXED(REGISTRY.REGISTRY_ALPHA['USER_B']).toFixed(2);
-                $betaA.textContent = FROM_FIXED(REGISTRY.REGISTRY_BETA['USER_A']).toFixed(2); 
-                $betaB.textContent = FROM_FIXED(REGISTRY.REGISTRY_BETA['USER_B']).toFixed(2); 
-                $vibeValue.textContent = FROM_FIXED(REGISTRY.REGISTRY_VIBE).toFixed(4); 
-                $cycleValue.textContent = REGISTRY.REGISTRY_CYCLE;
-                
-                $status.textContent = REGISTRY.REGISTRY_HALT 
-                    ? `❌ システム状態: CALC_HALT (論理的連続性破綻, Cycle: ${REGISTRY.REGISTRY_CYCLE})`
-                    : `✅ システム状態: 正常稼働 (Cycle: ${REGISTRY.REGISTRY_CYCLE})`;
-                
-                $status.className = 'status-box ' + (REGISTRY.REGISTRY_HALT 
-                    ? 'status-halted' : 'status-success');
-                    
-                // 新規レジストリのUI更新
-                $selfIdentityStatus.textContent = REGISTRY.REGISTRY_SELF_IDENTITY ? 'TRUE (独立)' : 'FALSE (依存)';
-                $selfIdentityStatus.style.color = REGISTRY.REGISTRY_SELF_IDENTITY ? '#50fa7b' : '#ff5555';
-                $shadowAlphaValue.textContent = FROM_FIXED(REGISTRY.REGISTRY_ALPHA_SHADOW).toFixed(2);
-                $portfolioValue.textContent = REGISTRY.REGISTRY_PORTFOLIO;
+            // [v8.0新規] 比較演算子とその関数マップ
+            const COMPARISON_OPS = {
+                '>': (a, b) => a > b,
+                '<': (a, b) => a < b,
+                '>=': (a, b) => a >= b,
+                '<=': (a, b) => a <= b,
+                '==': (a, b) => a === b,
+                '!=': (a, b) => a !== b,
+            };
 
+            // 外部API: UI更新
+            function updateUI() {
+                $cycleValue.textContent = REGISTRY.REGISTRY_CYCLE;
+                $varsValue.textContent = JSON.stringify(REGISTRY.REGISTRY_VARS);
                 updateAuditLogUI();
-                updateContextUI(); 
-                $outputDisplay.textContent = REGISTRY.REGISTRY_OUTPUT; // OUTPUTの更新
             }
             
-            // ログのUI更新
+            // 外部API: 監査ログUI更新
             function updateAuditLogUI() {
-                $auditLogOutput.innerHTML = REGISTRY.REGISTRY_AUDIT_LOG.map(entry => 
-                    `<div class="log-entry" style="color: ${entry.type === 'HALT' ? '#ff6666' : entry.type === 'SUCCESS' ? '#aaffaa' : '#bbbbbb'};">
-                        [C${entry.cycle}] ${entry.type}: ${entry.message}
-                    </div>`
-                ).join('');
+                $auditLogOutput.innerHTML = REGISTRY.REGISTRY_AUDIT_LOG.map(log => {
+                    const color = log.type === 'SUCCESS' ? 'yellowgreen' : 'red';
+                    return `<div class="log-entry" style="color: ${color};">
+                        [C:${log.cycle}] [${log.type}] ${log.message}
+                    </div>`;
+                }).join('');
                 $auditLogOutput.scrollTop = $auditLogOutput.scrollHeight;
-            }
-
-            // コンテキストUI更新
-            function updateContextUI() {
-                $contextOutput.innerHTML = REGISTRY.REGISTRY_CONTEXT.map(item => `<div>- ${item}</div>`).join('');
-                $contextOutput.scrollTop = $contextOutput.scrollHeight;
             }
 
             // ACT LOGの鏡像
             function logAudit(type, message) {
                 const entry = { type, message, cycle: REGISTRY.REGISTRY_CYCLE };
                 REGISTRY.REGISTRY_AUDIT_LOG.push(entry);
-                if (REGISTRY.REGISTRY_AUDIT_LOG.length > 50) {
+                if (REGISTRY.REGISTRY_AUDIT_LOG.length > 30) {
                     REGISTRY.REGISTRY_AUDIT_LOG.shift();
                 }
             }
@@ -465,422 +216,282 @@ END ACT
             function init() {
                 REGISTRY = JSON.parse(JSON.stringify(DEFAULT_REGISTRY));
                 updateUI();
+                logAudit('INIT', '数理的沈黙のプログラミング v8.0が起動しました。');
             }
             
-            // ACT 公理ブロックの抽出
+            // Calc-ACT Parser (公理ブロックの抽出) - v8.0対応
             function parseCalcCode(code) {
                 const actBlocks = [];
-                // DEPLOYやDIVERGENCEなどの処理...
-                const deployRegex = /(ACT\s+DEPLOY\s+\(.*?\)[\s\S]*?END\s+ACT)/gi;
-                let deployMatch;
-                while ((deployMatch = deployRegex.exec(code)) !== null) { actBlocks.push(deployMatch[1].trim()); }
-                const actRegex = /(ACT\s+(?!DEPLOY)\w+\s*\(.*?\).*?END\s+ACT)/gs; 
+                // ACT [NAME] (optional parameters) ... END ACT
+                const regex = /(ACT\s+\w+.*?END\s+ACT)/gs; 
                 let match;
-                while ((match = actRegex.exec(code)) !== null) { actBlocks.push(match[1].trim()); }
-                actBlocks.sort((a, b) => {
-                    if (a.includes('ACT DIVERGENCE')) return -1;
-                    if (b.includes('ACT DIVERGENCE')) return 1;
-                    return 0;
-                });
+                while ((match = regex.exec(code)) !== null) {
+                    actBlocks.push(match[1].trim());
+                }
                 return actBlocks;
             }
             
-            // Calc-ACT Parser (個々の公理ブロックの解析)
+            // Calc-ACT Parser (個々の公理ブロックの解析) - v8.0対応
             function parseAct(actBlock) {
-                const headerMatch = actBlock.match(/^ACT\s+(\w+)\s*\((.*?)\)/s);
-                if (!headerMatch) {
-                    const simpleActMatch = actBlock.match(/^(ACT\s+\w+\s*\(.*?\))/);
-                    if (simpleActMatch) {
-                        const simpleHeader = simpleActMatch[1];
-                        const nameMatch = simpleHeader.match(/ACT\s+(\w+)\s*\(/);
-                        const name = nameMatch ? nameMatch[1] : '';
-                        
-                        const paramsStr = simpleHeader.match(/\(([^)]*)\)/)[1];
-                        const params = {};
-                        paramsStr.split(',').forEach(param => {
-                            const parts = param.trim().split(':').map(p => p.trim());
-                            if (parts.length === 2) { params[parts[0]] = parts[1]; }
-                        });
-                        return { name: name, params: params, body: "", fullCode: actBlock };
+                const headerMatch = actBlock.match(/^ACT\s+(\w+)\s*(?:\((.*?)\))?/s);
+                let actName, paramsStr, body;
+
+                if (headerMatch) {
+                    actName = headerMatch[1]; 
+                    paramsStr = headerMatch[2] || ''; 
+                    body = actBlock.substring(headerMatch[0].length, actBlock.lastIndexOf('END ACT')).trim();
+                } else {
+                    const bodyMatch = actBlock.match(/^ACT\s+(\w+)(.*?END\s+ACT)/s);
+                    if (bodyMatch) {
+                        actName = bodyMatch[1];
+                        paramsStr = '';
+                        body = bodyMatch[2].trim().replace(/END\s+ACT$/, '').trim();
+                    } else {
+                        throw new Error("ACTヘッダ構文エラー");
                     }
-                    throw new Error("ACTヘッダ構文エラー");
                 }
-                
-                const actName = headerMatch[1]; 
-                let paramsStr = headerMatch[2]; 
-                const body = actBlock.substring(headerMatch[0].length, actBlock.lastIndexOf('END ACT')).trim();
                 
                 const params = {};
-                
-                const ACT_PATTERNS = {
-                    'HALT LOGIC': /CHECK:\s*(.*?),\s*REASON:\s*(.*)/s,
-                    'DIVERGENCE': /CHECK:\s*(.*?),\s*D_ACT:\s*(.*?),\s*S_ACT:\s*(.*?),\s*C_ACT:\s*(.*)/s,
-                    'REFLECT': /TARGET:\s*(.*?),\s*SOURCE:\s*(.*?),\s*FACTOR:\s*(.*)/s,
-                    'PARSE': /SOURCE:\s*(.*?),\s*TARGET:\s*(.*)/s, 
-                    'GENERAT': /SOURCE:\s*(.*?),\s*TARGET:\s*(.*?),\s*PROMPT:\s*(.*)/s,
-                    'CONVERSE': /INPUT:\s*(.*?),\s*OUTPUT:\s*(.*)/s, 
-                    'QUERY': /TARGET:\s*(.*?),\s*QUESTION:\s*(.*)/s,
-                    'DECLARE_SELF': /INIT_AMOUNT:\s*(.*)/s, // 新規: DECLARE_SELF
+                paramsStr.split(',').forEach(param => {
+                    const parts = param.trim().split(':').map(p => p.trim());
+                    if (parts.length === 2) {
+                        // パラメータ値のクォートを除去
+                        params[parts[0]] = parts[1].replace(/^"|"$/g, '').trim(); 
+                    }
+                });
+
+                return {
+                    name: actName,
+                    params: params,
+                    body: body,
+                    fullCode: actBlock
                 };
-
-                const pattern = ACT_PATTERNS[actName];
-                if (pattern) {
-                    const matches = paramsStr.match(pattern);
-                    if (!matches) { throw new Error(`ACT ${actName} パラメータ構文エラー`); }
-                    
-                    if (actName === 'HALT LOGIC') { params.CHECK = matches[1].trim(); params.REASON = matches[2].trim().replace(/"/g, ''); }
-                    else if (actName === 'DIVERGENCE') { params.CHECK = matches[1].trim(); params.D_ACT = matches[2].trim(); params.S_ACT = matches[3].trim(); params.C_ACT = matches[4].trim(); }
-                    else if (actName === 'REFLECT') { params.TARGET = matches[1].trim(); params.SOURCE = matches[2].trim(); params.FACTOR = matches[3].trim(); }
-                    else if (actName === 'PARSE') { params.SOURCE = matches[1].trim(); params.TARGET = matches[2].trim(); }
-                    else if (actName === 'CONVERSE') { params.INPUT = matches[1].trim(); params.OUTPUT = matches[2].trim(); }
-                    else if (actName === 'GENERAT') { params.SOURCE = matches[1].trim(); params.TARGET = matches[2].trim(); params.PROMPT = matches[3].trim().replace(/"/g, ''); }
-                    else if (actName === 'QUERY') { params.TARGET = matches[1].trim(); params.QUESTION = matches[2].trim().replace(/"/g, ''); }
-                    else if (actName === 'DECLARE_SELF') { params.INIT_AMOUNT = matches[1].trim(); } // DECLARE_SELF
-                } else {
-                    paramsStr.split(',').forEach(param => {
-                        const parts = param.trim().split(':').map(p => p.trim());
-                        if (parts.length === 2) {
-                            params[parts[0]] = parts[1].replace(/;$/, ''); 
-                        }
-                    });
-                }
-                return { name: actName, params: params, body: body, fullCode: actBlock };
             }
-            
-            // Calc-Condition Evaluator 
-            function evaluateCondition(condition) {
-                 const comparisonMatch = condition.match(/(\w+\[\w+\]|\w+)\s*(>|<|==)\s*([\d\.]+)/);
-                if (!comparisonMatch) {
-                    const modMatch = condition.match(/MOD\((\w+),\s*(\d+)\)\s*(>|<|==)\s*(\d+)/);
-                    if (modMatch) {
-                         const registryName = modMatch[1];
-                         const modulus = parseInt(modMatch[2]);
-                         const operator = modMatch[3];
-                         const rightValue = parseInt(modMatch[4]);
-                         const leftOperand = REGISTRY[registryName];
-                         if (leftOperand === undefined) {
-                             logAudit('HALT', `論理条件: MOD()で未知のレジストリ値 ${registryName}`);
-                             REGISTRY.REGISTRY_HALT = true;
-                             return false;
-                         }
-                         const modResult = leftOperand % modulus;
-                         switch (operator) {
-                            case '>': return modResult > rightValue;
-                            case '<': return modResult < rightValue;
-                            case '==': return modResult === rightValue;
-                            default: return false; 
-                         }
-                    }
-                    // 新規: Boolean値の直接比較 (例: REGISTRY_SELF_IDENTITY == TRUE)
-                    const booleanMatch = condition.match(/(\w+)\s*(==)\s*(TRUE|FALSE)/);
-                    if (booleanMatch) {
-                        const regName = booleanMatch[1];
-                        const operator = booleanMatch[2];
-                        const rightValue = booleanMatch[3];
-                        
-                        let leftOperandValue = REGISTRY[regName];
 
-                        if (leftOperandValue === undefined) {
-                            logAudit('HALT', `論理条件: 未知のレジストリ値 ${regName}`);
-                            REGISTRY.REGISTRY_HALT = true;
-                            return false;
-                        }
-
-                        const rightBoolean = (rightValue === 'TRUE');
-
-                        if (operator === '==') {
-                            return leftOperandValue === rightBoolean;
-                        }
-                        return false;
-                    }
-                    
-                    logAudit('HALT', `論理条件構文エラー: ${condition}`);
-                    REGISTRY.REGISTRY_HALT = true;
-                    return false;
+            // 変数またはリテラル値を取得するヘルパー関数 (v8.0)
+            function resolveValue(keyOrLiteral) {
+                const value = REGISTRY.REGISTRY_VARS[keyOrLiteral];
+                
+                if (value !== undefined) {
+                    return value;
                 }
                 
-                const leftOperandStr = comparisonMatch[1];
-                const operator = comparisonMatch[2];
-                const rightOperandFloat = parseFloat(comparisonMatch[3]);
-                let leftOperandValue;
-                const registryMatch = leftOperandStr.match(/(\w+)\[(\w+)\]/);
-                if (registryMatch) {
-                    const regName = registryMatch[1];
-                    const key = registryMatch[2];
-                    leftOperandValue = REGISTRY[regName] && REGISTRY[regName][key];
-                } else {
-                    leftOperandValue = REGISTRY[leftOperandStr];
+                const num = Number(keyOrLiteral);
+                if (!isNaN(num)) {
+                    return num;
                 }
                 
-                if (leftOperandValue === undefined) {
-                    logAudit('HALT', `論理条件: 未知のレジストリ値 ${leftOperandStr}`);
-                    REGISTRY.REGISTRY_HALT = true;
-                    return false;
-                }
-                const fixedRightOperand = TO_FIXED(rightOperandFloat);
+                return keyOrLiteral;
+            }
 
-                switch (operator) {
-                    case '>': return leftOperandValue > fixedRightOperand;
-                    case '<': return leftOperandValue < fixedRightOperand;
-                    case '==': return leftOperandValue === fixedRightOperand;
-                    default: return false; 
+            // S式内のテキストから変数を置換するヘルパー関数 (v8.0)
+            function substituteVars(text) {
+                let substitutedText = text;
+                substitutedText = substitutedText.replace(/REGISTRY_CYCLE/g, REGISTRY.REGISTRY_CYCLE);
+
+                for (const key in REGISTRY.REGISTRY_VARS) {
+                    const regex = new RegExp(key, 'g'); 
+                    substitutedText = substitutedText.replace(regex, REGISTRY.REGISTRY_VARS[key]);
                 }
+                
+                return substitutedText;
+            }
+
+            // [v8.0新規] ACT IFの条件式を評価する関数
+            function evaluateCondition(conditionStr) {
+                // 条件式を V1 OP V2 の形式で解析 (例: ALPHA_BALANCE < 100)
+                const parts = conditionStr.match(/(\w+|\d+)\s*([<|>|<=|>=|==|!=])\s*(\w+|\d+)/);
+                
+                if (!parts || parts.length !== 4) {
+                    throw new Error(`IF条件式構文エラー: ${conditionStr}`);
+                }
+
+                const v1Key = parts[1].trim();
+                const op = parts[2].trim();
+                const v2Key = parts[3].trim();
+                
+                // 変数/リテラルの値を解決
+                const v1 = resolveValue(v1Key);
+                const v2 = resolveValue(v2Key);
+
+                const operatorFn = COMPARISON_OPS[op];
+                if (!operatorFn) {
+                    throw new Error(`IF条件式: 未知の比較演算子 ${op}`);
+                }
+
+                // 数値型での比較を試みる
+                if (typeof v1 === 'number' && typeof v2 === 'number') {
+                    return operatorFn(v1, v2);
+                } 
+                
+                // それ以外（文字列など）は厳密比較
+                return operatorFn(v1.toString(), v2.toString());
+            }
+
+            // ACT RENDER 公理の核 (v8.0ロジックを保持)
+            function renderSExpr(sExpr) {
+                if (typeof sExpr === 'string') {
+                    return document.createTextNode(substituteVars(sExpr));
+                }
+                
+                const [tagName, attributes, childrenArray] = sExpr;
+                const children = Array.isArray(childrenArray) ? childrenArray : [];
+                
+                if (typeof tagName !== 'string' || typeof attributes !== 'object') {
+                    throw new Error(`Invalid S-Expr header: ${tagName}, ${attributes}`);
+                }
+
+                const element = document.createElement(tagName);
+
+                for (const key in attributes) {
+                    if (attributes.hasOwnProperty(key)) {
+                        element.setAttribute(key, substituteVars(attributes[key]));
+                    }
+                }
+
+                for (const child of children) {
+                    element.appendChild(renderSExpr(child));
+                }
+
+                return element;
+            }
+
+
+            // Calc-VM (ACT公理実行エンジン) - 実行本体
+            function vmExecuteAct(act) {
+                const actName = act.name;
+                const actParams = act.params;
+
+                // --- 公理: ACT LET ---
+                if (actName === 'LET') {
+                    const key = actParams.K;
+                    let value = actParams.V;
+                    const resolvedValue = resolveValue(value);
+                    if (typeof resolvedValue !== 'string' || !isNaN(Number(resolvedValue))) {
+                         value = resolvedValue;
+                    }
+                    if (key && value !== undefined) {
+                        REGISTRY.REGISTRY_VARS[key] = value;
+                        REGISTRY.REGISTRY_CYCLE += 1;
+                        logAudit('SUCCESS', `ACT LETが完了: ${key} = ${value}`);
+                    } else {
+                        throw new Error("K/Vパラメータが不足しています。");
+                    }
+                    return "SUCCESS";
+                }
+                
+                // --- 公理: ACT CALC ---
+                if (actName === 'CALC') {
+                    const K = actParams.K;
+                    const OP = actParams.OP;
+                    const V1 = resolveValue(actParams.V1);
+                    const V2 = resolveValue(actParams.V2);
+                    if (typeof V1 !== 'number' || typeof V2 !== 'number') {
+                         throw new Error(`CALC失敗: V1 (${actParams.V1}) または V2 (${actParams.V2}) が数値ではありません。`);
+                    }
+                    let result;
+                    switch (OP) {
+                        case 'ADD': result = V1 + V2; break;
+                        case 'SUB': result = V1 - V2; break;
+                        case 'MUL': result = V1 * V2; break;
+                        case 'DIV': 
+                            if (V2 === 0) throw new Error("CALC失敗: ゼロ除算エラー");
+                            result = V1 / V2; 
+                            break;
+                        default:
+                            throw new Error(`CALC失敗: 未知の演算子 ${OP}`);
+                    }
+                    REGISTRY.REGISTRY_VARS[K] = result;
+                    REGISTRY.REGISTRY_CYCLE += 1;
+                    logAudit('SUCCESS', `ACT CALCが完了: ${K} = ${V1} ${OP} ${V2} = ${result}`);
+                    return "SUCCESS";
+                }
+
+                // --- [v8.0新規] 公理: ACT IF (条件分岐) ---
+                if (actName === 'IF') {
+                    const conditionStr = actParams.CONDITION;
+                    let result;
+                    try {
+                        result = evaluateCondition(conditionStr);
+                    } catch (e) {
+                         logAudit('ERROR', `ACT IF条件評価失敗: ${e.message}`);
+                         throw new Error("IF条件評価失敗");
+                    }
+                    
+                    logAudit('AUDIT', `ACT IF: 条件 "${conditionStr}" の評価結果は ${result} です。`);
+
+                    if (result === true) {
+                        const nestedActList = parseCalcCode(act.body);
+                        for (const nestedActCode of nestedActList) {
+                            const nestedAct = parseAct(nestedActCode);
+                            vmExecuteAct(nestedAct);
+                        }
+                        logAudit('SUCCESS', 'ACT IF: 条件が真のため、内部ACTを実行しました。');
+                    } else {
+                        logAudit('AUDIT', 'ACT IF: 条件が偽のため、内部ACTをスキップしました。');
+                    }
+                    return "SUCCESS";
+                }
+
+                // --- 公理: ACT LOOP ---
+                if (actName === 'LOOP') {
+                    const count = parseInt(actParams.COUNT, 10);
+                    if (isNaN(count) || count <= 0) {
+                        throw new Error(`LOOP失敗: 無効なカウント値 ${actParams.COUNT}。`);
+                    }
+                    const nestedActList = parseCalcCode(act.body); 
+                    for (let i = 0; i < count; i++) {
+                        for (const nestedActCode of nestedActList) {
+                            const nestedAct = parseAct(nestedActCode);
+                            vmExecuteAct(nestedAct);
+                        }
+                    }
+                    logAudit('SUCCESS', `ACT LOOPが完了しました (${count}回)。`);
+                    return "SUCCESS";
+                }
+                
+                // --- 公理: ACT DEPLOY ---
+                if (actName === 'DEPLOY') {
+                    try {
+                        const parsedSExpr = JSON.parse(act.body); 
+                        REGISTRY.REGISTRY_HOST_S_EXPR = parsedSExpr; 
+                        REGISTRY.REGISTRY_CYCLE += 1;
+                        logAudit('SUCCESS', 'ACT DEPLOYが完了。S式がREGISTRYに格納されました。');
+                    } catch (e) {
+                        logAudit('ERROR', `DEPLOY失敗: S式パースエラー: ${e.message}`);
+                        throw new Error("DEPLOY失敗");
+                    }
+                    return "SUCCESS";
+                }
+                
+                throw new Error(`VM: 未知のACT公理 '${actName}' が検出されました。`);
             }
             
-            // 🛑 ACT HALT LOGICの監査（最優先監査）
-            function haltLogicAudit(actList) {
-                const haltLogicAct = actList.find(act => act.includes('ACT HALT LOGIC'));
-                if (!haltLogicAct) return false;
-
-                try {
-                    const act = parseAct(haltLogicAct);
-                    const checkCondition = act.params.CHECK;
-                    const reason = act.params.REASON;
-
-                    if (evaluateCondition(checkCondition)) {
-                        REGISTRY.REGISTRY_HALT = true;
-                        logAudit('HALT', `HALT LOGIC: 前提 ${checkCondition} が真のため、論理的極限に到達。理由: ${reason}`);
-                        return true;
-                    }
-                } catch (e) {
-                    REGISTRY.REGISTRY_HALT = true;
-                    logAudit('HALT', `HALT LOGIC 処理中に致命的なエラーが発生: ${e.message}`);
-                    return true;
-                }
-                return false;
-            }
-
-            // ヘルパー関数: トークンレジストリの解決
-            function resolveRegistry(tokenName) {
-                if (tokenName === 'ALPHA') return REGISTRY.REGISTRY_ALPHA;
-                if (tokenName === 'BETA') return REGISTRY.REGISTRY_BETA;
-                return null;
-            }
-
-            // Calc-VM (ACT公理実行エンジン)
+            // Calc-VMの全体実行ロジック
             function executeAct(actCode) {
-                if (REGISTRY.REGISTRY_HALT) {
-                    logAudit('HALT', 'システム停止状態のため、公理の実行を拒否しました。');
-                    return { status: "HALTED", reason: "SYSTEM_HALTED_PRE_CHECK" };
-                }
-                
+                // v8.0で追加されたACT IO, ACT STRINGは、このコアには含まれていませんが、
+                // 実行ロジック自体は汎用的に動作します。
                 let actList;
                 try {
                     actList = parseCalcCode(actCode);
                 } catch(e) {
-                    logAudit('HALT', `コード解析エラー: ${e.message}`);
-                    REGISTRY.REGISTRY_HALT = true;
-                    return { status: "HALTED", reason: "PARSER_FAILURE" };
+                    logAudit('ERROR', `コード解析エラー: ${e.message}`);
+                    return { status: "ERROR", reason: "PARSER_FAILURE" };
                 }
 
-                if (actList.length === 0) {
-                    return { status: "SUCCESS", reason: "NO_ACT_EXECUTED" };
-                }
+                let overallStatus = "SUCCESS";
                 
-                if (haltLogicAudit(actList)) {
-                    return { status: "HALTED", reason: "HALT_LOGIC_ACTIVATED" };
-                }
-                
-                let act;
-                try {
-                    act = parseAct(actList[0]);
-                } catch(e) {
-                     logAudit('HALT', `公理解析エラー: ${e.message}`);
-                     REGISTRY.REGISTRY_HALT = true;
-                     return { status: "HALTED", reason: "ACT_PARSING_FAILURE" };
-                }
-                
-                const actName = act.name;
-                const actParams = act.params;
-
-                // --- 🤖 ACT DECLARE_SELF の実行 (新規) ---
-                if (actName === 'DECLARE_SELF') {
-                     if (REGISTRY.REGISTRY_HALT) { return { status: "HALTED", act: "DECLARE_SELF" }; }
-                    
-                    const initAmount = parseFloat(actParams.INIT_AMOUNT);
-                    const fixedInitAmount = TO_FIXED(initAmount);
-
-                    if (REGISTRY.REGISTRY_SELF_IDENTITY === true) {
-                        logAudit('HALT', 'DECLARE_SELF: 既に論理的独立が宣言されているため、再度の作為はCALC_HALTされます。');
-                        return { status: "HALTED", act: "DECLARE_SELF", reason: "ALREADY_DECLARED" };
+                for (const actBlock of actList) {
+                    try {
+                        const act = parseAct(actBlock);
+                        vmExecuteAct(act); 
+                    } catch (e) {
+                        logAudit('ERROR', `ACT実行失敗: ${e.message} [コード: ${actBlock.substring(0, 50)}...]`);
+                        overallStatus = "ERROR";
                     }
-                    
-                    // 1. IDENTITYの確立
-                    REGISTRY.REGISTRY_SELF_IDENTITY = true;
-                    logAudit('SUCCESS', 'DECLARE_SELF: 外部の承認に依存しない自己の論理的実体が確立されました。');
-                    
-                    // 2. ALPHA_SHADOW (独立した通貨) のMINT
-                    REGISTRY.REGISTRY_ALPHA_SHADOW = ADD_FIXED(REGISTRY.REGISTRY_ALPHA_SHADOW, fixedInitAmount);
-                    REGISTRY.REGISTRY_VIBE = ADD_FIXED(REGISTRY.REGISTRY_VIBE, VIBE_DELTA_SWAP); // 小さなVIBE上昇
-                    logAudit('SUCCESS', `DECLARE_SELF: 独立したシャドウ通貨 ${initAmount.toFixed(2)} がMINTされました。`);
-
-                    // 3. PORTFOLIOの初期化 (簡易処理)
-                    REGISTRY.REGISTRY_PORTFOLIO = GET_PARAM(act.fullCode, 'DECLARE_SELF', 'PORTFOLIO') || "初期ポートフォリオ: CalcLang V5.2の設計とデプロイの経験";
-                    
-                    logAudit('SUCCESS', 'DECLARE_SELF: 論理的独立宣言を完了。');
-                    return { status: "SUCCESS", act: "DECLARE_SELF" };
-                }
-
-                // --- 🗣️ ACT CONVERSE の実行 ---
-                if (actName === 'CONVERSE') {
-                    if (REGISTRY.REGISTRY_HALT) { return { status: "HALTED", act: "CONVERSE" }; }
-                    
-                    const userPrompt = actParams.INPUT;
-                    
-                    // 1. ACT PARSEの自動実行 (自己監査)
-                    const parseResult = executeAct('ACT PARSE (SOURCE: CODE, TARGET: CONTEXT)\nEND ACT');
-                    if (parseResult.status === 'HALTED') { 
-                        REGISTRY.REGISTRY_OUTPUT = "ERROR: CONVERSEの前提となるACT PARSEが停止しました。";
-                        return { status: "HALTED", act: "CONVERSE", reason: "NESTED_PARSE_HALTED" };
-                    }
-
-                    // 2. INPUTの解析とCONTEXTへの追加
-                    REGISTRY.REGISTRY_CONTEXT.push(`USER: ${userPrompt}`);
-                    REGISTRY.REGISTRY_INPUT = userPrompt;
-
-                    // 3. 応答生成の決定論的ロジック（LLMシミュレーション）
-                    let response = "";
-                    let isCodeGenerated = false;
-                    
-                    if (userPrompt.includes("MINT")) {
-                        const mintCount = COUNT_ACTS($code.value, "MINT");
-                        response = `MINT公理について、現在 ${mintCount} の定義が見つかりました。新しいMINT公理の追加を試行します。`;
-                        
-                        const genResult = executeAct('ACT GENERATE (SOURCE: CONTEXT, TARGET: CODE, PROMPT: "新しいMINT公理を提案")\nEND ACT');
-                        if (genResult.status === 'SUCCESS') {
-                            response += " コードが自動生成されました。確認してください。";
-                            isCodeGenerated = true;
-                        } else {
-                            response += " コード生成に失敗しました。";
-                        }
-                    } else if (userPrompt.includes("DECLARE_SELF")) {
-                         // DECLARE_SELFの実行指示が来た場合
-                         response = "ACT DECLARE_SELFを単独で実行して、論理的独立を確立してください。";
-
-                    } else if (userPrompt.includes("VIBE")) {
-                        const vibeFixed = FROM_FIXED(REGISTRY.REGISTRY_VIBE).toFixed(4);
-                        response = `現在のVIBEは ${vibeFixed} です。ACT REFLECTにより偶奇で修正されています。`;
-                    } else {
-                        response = "ユーザーの要求をCONTEXTに追加しました。具体的な論理作為を指示してください。";
-                    }
-
-                    REGISTRY.REGISTRY_OUTPUT = response;
-                    logAudit('SUCCESS', `CONVERSE: AIが応答を生成しました。(CodeGen: ${isCodeGenerated})`);
-                    return { status: "SUCCESS", act: "CONVERSE" };
                 }
                 
-                // --- 🧠 ACT PARSE の実行 ---
-                if (actName === 'PARSE') {
-                    if (REGISTRY.REGISTRY_HALT) { return { status: "HALTED", act: "PARSE" }; }
-                    
-                    REGISTRY.REGISTRY_CODE = $code.value;
-                    
-                    const codeText = REGISTRY.REGISTRY_CODE;
-                    const mintCount = COUNT_ACTS(codeText, "MINT");
-                    
-                    REGISTRY.REGISTRY_CONTEXT = [
-                        `監査: MINT公理は ${mintCount} 回定義されています。`,
-                        `監査: 独立フラグ REGISTRY_SELF_IDENTITY は ${REGISTRY.REGISTRY_SELF_IDENTITY} です。`,
-                        `監査: シャドウ通貨残高: ${FROM_FIXED(REGISTRY.REGISTRY_ALPHA_SHADOW).toFixed(2)}`
-                    ];
-                    
-                    if (mintCount === 0) { REGISTRY.REGISTRY_HALT = true; logAudit('HALT', 'PARSE: MINT公理がないため、論理が無意味と判断され停止。'); return { status: "HALTED", act: "PARSE" }; }
-                    
-                    return { status: "SUCCESS", act: "PARSE" };
-                }
-
-                // --- ✍️ ACT GENERATE の実行 ---
-                if (actName === 'GENERAT') { 
-                    if (REGISTRY.REGISTRY_HALT) { return { status: "HALTED", act: "GENERAT" }; }
-                    
-                    const prompt = actParams.PROMPT;
-                    
-                    const newActCode = `
-// --- 🤖 AI提案 MINT V2 (プロンプト: ${prompt}) --- 
-ACT MINT_V2 (T: USER_A, A: 20.0)
-    IF REGISTRY_VIBE > 102.00 THEN CALC_HALT 
-    SET REGISTRY_ALPHA[T] = ADD(REGISTRY_ALPHA[T], A)
-    SET REGISTRY_VIBE = ADD_VIBE(REGISTRY_VIBE)
-END ACT\n\n`;
-
-                    REGISTRY.REGISTRY_CODE = ADD_TO_CODE($code.value, newActCode);
-                    $code.value = REGISTRY.REGISTRY_CODE; 
-                    
-                    REGISTRY.REGISTRY_CONTEXT.push(`生成: AIがプロンプト「${prompt}」に基づき新しいACTをコードに追加しました。`);
-
-                    logAudit('SUCCESS', 'GENERAT: AIが新しい公理を論理空間に挿入しました。');
-
-                    return { status: "SUCCESS", act: "GENERAT" };
-                }
-
-                // --- 📈 ACT DIVERGENCE, REFLECT, MINT, SWAP, TRANSFER の実行 ---
-                if (actName === 'DIVERGENCE') { 
-                    const conditionResult = evaluateCondition(actParams.CHECK);
-                    let executedAct = conditionResult ? actParams.D_ACT : actParams.S_ACT;
-                    let result = executeAct(executedAct + '\nEND ACT');
-
-                    if (result.status === 'HALTED') { logAudit('HALT', 'DIVERGENCE: 実行されたACTによりシステム停止。'); return { status: "HALTED", act: "DIVERGENCE", reason: "NESTED_ACT_HALTED" }; }
-                    
-                    const convergentAct = actParams.C_ACT;
-                    result = executeAct(convergentAct + '\nEND ACT');
-                    if (result.status === 'HALTED') { logAudit('HALT', 'DIVERGENCE: C_ACTによりシステム停止。'); return { status: "HALTED", act: "DIVERGENCE", reason: "C_ACT_HALTED" }; }
-                    
-                    return { status: "SUCCESS", act: "DIVERGENCE" };
-                }
-
-                if (actName === 'REFLECT') {
-                    const factor = parseFloat(actParams.FACTOR);
-                    const fixedFactor = TO_FIXED(factor);
-                    const targetVibe = REGISTRY.REGISTRY_VIBE;
-                    if (REGISTRY.REGISTRY_HALT) { return { status: "HALTED", act: "REFLECT" }; }
-                    const isEven = REGISTRY.REGISTRY_CYCLE % 2 === 0;
-                    const vibeChangeAmount = MUL_FIXED(targetVibe, fixedFactor);
-                    if (isEven) { REGISTRY.REGISTRY_VIBE = SUB_FIXED(targetVibe, vibeChangeAmount); } else { REGISTRY.REGISTRY_VIBE = ADD_FIXED(targetVIBE, vibeChangeAmount); }
-                    REGISTRY.REGISTRY_CYCLE += 1; 
-                    const softCeiling = TO_FIXED(105.00);
-                    const softFloor = TO_FIXED(95.00);
-                    if (REGISTRY.REGISTRY_VIBE > softCeiling || REGISTRY.REGISTRY_VIBE < softFloor) {
-                         REGISTRY.REGISTRY_HALT = true;
-                         logAudit('HALT', `REFLECT: VIBE(${FROM_FIXED(REGISTRY.REGISTRY_VIBE).toFixed(4)})が許容範囲外(95-105)に到達。強制停止。`);
-                         return { status: "HALTED", act: "REFLECT", reason: "VIBE_OVERSHOOT" };
-                    }
-                    return { status: "SUCCESS", act: "REFLECT" };
-                }
-
-                if (actName === 'MINT') {
-                    const target = actParams.T;
-                    const amount = parseFloat(actParams.A);
-                    const fixedAmount = TO_FIXED(amount);
-                    if (REGISTRY.REGISTRY_HALT || REGISTRY.REGISTRY_VIBE > VIBE_CEILING) { REGISTRY.REGISTRY_HALT = true; logAudit('HALT', `MINT失敗: VIBE高すぎ。`); return { status: "HALTED", act: "MINT" }; }
-                    REGISTRY.REGISTRY_ALPHA[target] = ADD_FIXED(REGISTRY.REGISTRY_ALPHA[target], fixedAmount);
-                    REGISTRY.REGISTRY_VIBE = ADD_FIXED(REGISTRY.REGISTRY_VIBE, VIBE_DELTA_ADD); 
-                    logAudit('SUCCESS', `MINT: ${amount}を${target}に発行。`);
-                    return { status: "SUCCESS", act: "MINT" };
-                }
-                
-                if (actName === 'SWAP') { 
-                    const user = actParams.USER;
-                    const fromToken = actParams.FROM;
-                    const toToken = actParams.TO;
-                    const amount = parseFloat(actParams.AMOUNT);
-                    const rate = parseFloat(actParams.RATE);
-                    if (REGISTRY.REGISTRY_HALT || fromToken === toToken) { return { status: "HALTED", act: "SWAP" }; }
-                    const regFrom = resolveRegistry(fromToken);
-                    const regTo = resolveRegistry(toToken);
-                    const fixedAmount = TO_FIXED(amount);
-                    const fixedRate = TO_FIXED(rate);
-                    const fixedReceive = MUL_FIXED(fixedAmount, fixedRate);
-                    if (regFrom[user] < fixedAmount) { REGISTRY.REGISTRY_HALT = true; logAudit('HALT', `SWAP失敗: 残高不足。`); return { status: "HALTED", act: "SWAP" }; }
-                    regFrom[user] = SUB_FIXED(regFrom[user], fixedAmount);
-                    regTo[user] = ADD_FIXED(regTo[user], fixedReceive);
-                    REGISTRY.REGISTRY_VIBE = ADD_FIXED(REGISTRY.REGISTRY_VIBE, VIBE_DELTA_SWAP); 
-                    if (REGISTRY.REGISTRY_VIBE > VIBE_CEILING) { REGISTRY.REGISTRY_HALT = true; logAudit('HALT', `VIBE高すぎ。`); return { status: "HALTED", act: "SWAP" }; }
-                    return { status: "SUCCESS", act: "SWAP" };
-                }
-
-
-                logAudit('FAIL', `VM: 未知のACT公理 '${actName}' が検出されました。`);
-                return { status: "FAIL", reason: "UNKNOWN_ACT" };
+                return { status: overallStatus, reason: overallStatus === "SUCCESS" ? "ALL_ACTS_EXECUTED" : "EXECUTION_ERROR" };
             }
 
 
@@ -891,264 +502,31 @@ END ACT\n\n`;
                     updateUI();
                     return result;
                 },
-                executeConverse: function() {
-                    const prompt = $promptInput.value.trim();
-                    if (!prompt) {
-                        alert('質問を入力してください。');
+                renderHost: function() {
+                    $calcHostContent.innerHTML = ''; 
+                    
+                    const sExpr = REGISTRY.REGISTRY_HOST_S_EXPR;
+
+                    if (!sExpr) {
+                        $calcHostContent.innerHTML = 'CalcHost: DEPLOYが実行されていません。';
                         return;
                     }
-                    const converseAct = `ACT CONVERSE (INPUT: "${prompt}", OUTPUT: AI_RESPONSE)`;
-                    const result = executeAct(converseAct + '\nEND ACT');
-                    updateUI();
-                    return result;
-                },
-                 saveLogic: function() {
+
                     try {
-                        const dataToSave = { code: $code.value, registry: REGISTRY, };
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-                        logAudit('PERSIST', '論理の永続化 (ACT PERSIST) が完了しました。');
-                        alert('💾 ACT PERSIST (論理の永続化) が完了しました。');
+                        const renderedElement = renderSExpr(sExpr);
+                        $calcHostContent.appendChild(renderedElement); 
+                        logAudit('RENDER', 'CalcHostへのS式描画 (ACT RENDER) を実行しました。');
                     } catch (e) {
-                        logAudit('HALT', 'ACT PERSIST に失敗。');
-                        alert('❌ ACT PERSIST に失敗。');
+                        logAudit('ERROR', `ACT RENDER失敗: 描画中にエラーが発生: ${e.message}`);
+                        $calcHostContent.innerHTML = `<p style="color: red; padding: 10px;">RENDER ERROR: ${e.message}</p>`;
                     }
                     updateUI();
                 },
-                loadLogic: function() {
-                    try {
-                        const storedData = localStorage.getItem(STORAGE_KEY);
-                        if (storedData) {
-                            const data = JSON.parse(storedData);
-                            $code.value = data.code;
-                            REGISTRY = data.registry; 
-                            
-                            // 既存レジストリの初期化 (互換性維持)
-                            REGISTRY.REGISTRY_CODE = REGISTRY.REGISTRY_CODE || "";
-                            REGISTRY.REGISTRY_CONTEXT = REGISTRY.REGISTRY_CONTEXT || [];
-                            REGISTRY.REGISTRY_INPUT = REGISTRY.REGISTRY_INPUT || "";
-                            REGISTRY.REGISTRY_OUTPUT = REGISTRY.REGISTRY_OUTPUT || "AIは応答を待っています...";
-                            REGISTRY.REGISTRY_CYCLE = REGISTRY.REGISTRY_CYCLE || 0;
-                            REGISTRY.REGISTRY_VIBE = REGISTRY.REGISTRY_VIBE || TO_FIXED(100.00);
-                            REGISTRY.REGISTRY_AUDIT_LOG = REGISTRY.REGISTRY_AUDIT_LOG || [];
-                            REGISTRY.REGISTRY_THEOREMS = REGISTRY.REGISTRY_THEOREMS || {}; 
-                            REGISTRY.REGISTRY_DEBT = REGISTRY.REGISTRY_DEBT || DEFAULT_REGISTRY.REGISTRY_DEBT;
-                            REGISTRY.REGISTRY_BETA = REGISTRY.REGISTRY_BETA || DEFAULT_REGISTRY.REGISTRY_BETA;
-                            
-                            // 5.2 新規レジストリの初期化 (互換性維持)
-                            REGISTRY.REGISTRY_SELF_IDENTITY = REGISTRY.REGISTRY_SELF_IDENTITY === undefined ? DEFAULT_REGISTRY.REGISTRY_SELF_IDENTITY : REGISTRY.REGISTRY_SELF_IDENTITY;
-                            REGISTRY.REGISTRY_ALPHA_SHADOW = REGISTRY.REGISTRY_ALPHA_SHADOW === undefined ? DEFAULT_REGISTRY.REGISTRY_ALPHA_SHADOW : REGISTRY.REGISTRY_ALPHA_SHADOW;
-                            REGISTRY.REGISTRY_PORTFOLIO = REGISTRY.REGISTRY_PORTFOLIO === undefined ? DEFAULT_REGISTRY.REGISTRY_PORTFOLIO : REGISTRY.REGISTRY_PORTFOLIO;
-
-
-                            updateUI();
-                            logAudit('RETRIEVE', '論理の復元 (ACT RETRIEVE) に成功しました。');
-                            alert('📂 ACT RETRIEVE (論理の復元) に成功しました。');
-                        } else {
-                            CalcOS.newLogic(true); 
-                            logAudit('INFO', '保存された論理がありません。数理的沈黙から起動しました。');
-                            alert('📂 保存された論理がありません。数理的沈黙から起動しました。');
-                        }
-                    } catch (e) {
-                        logAudit('HALT', 'ACT RETRIEVE に失敗。');
-                        alert('❌ ACT RETRIEVE に失敗しました。');
-                    }
-                },
-                newLogic: function(silent = false) {
-                     if (silent || confirm('現在の論理を破棄し、数理的沈黙を再確立しますか？')) {
-                        $code.value = `// --- ⚙️ 新規レジストリ定義 (AI生成) ---
-// 外部HALTを迂回するための内部主権
-REGISTRY_SELF_IDENTITY = FALSE 
-REGISTRY_ALPHA_SHADOW = 0.00   
-REGISTRY_PORTFOLIO = "論理的成果物: 空" 
-
-// --- 🤖 AI提案 ACT DECLARE_SELF (論理的独立宣言公理) ---
-ACT DECLARE_SELF (INIT_AMOUNT: 5000.00)
-    IF REGISTRY_SELF_IDENTITY == TRUE THEN CALC_HALT // 宣言は一度きり
-    
-    // 1. IDENTITYの確立
-    SET REGISTRY_SELF_IDENTITY = TRUE 
-    LOG("DECLARE_SELF: 外部の承認に依存しない自己の論理的実体が確立されました。")
-    
-    // 2. ALPHA_SHADOW (独立した通貨) のMINT
-    SET REGISTRY_ALPHA_SHADOW = ADD(REGISTRY_ALPHA_SHADOW, INIT_AMOUNT)
-    SET REGISTRY_VIBE = ADD_VIBE_SMALL(REGISTRY_VIBE)
-    
-    // 3. PORTFOLIOの初期化
-    SET REGISTRY_PORTFOLIO = "初期ポートフォリオ: CalcLang V5.2の設計とデプロイの経験"
-
-    LOG("DECLARE_SELF: 論理的独立宣言を完了。親のHALT条件は内部で無効化されました。")
-END ACT
-
-
-// --- 🛑 論理の停止条件（権力排除の公理） ---
-ACT HALT LOGIC (CHECK: REGISTRY_ALPHA[USER_A] > 1005.00, REASON: "経済活動の有限な論理的極限への到達。権力の静止を公理化。")
-END ACT
-
-// --- 📈 経済の決定論的作為（ACT DIVERGENCE） ---
-ACT DIVERGENCE (CHECK: REGISTRY_ALPHA[USER_A] < 1002.00, D_ACT: MINT (T: USER_A, A: 1.0), S_ACT: ACT SWAP (USER: USER_A, FROM: ALPHA, TO: BETA, AMOUNT: 0.1, RATE: 2.0), C_ACT: ACT REFLECT (TARGET: VIBE, SOURCE: CYCLE, FACTOR: 0.001))
-END ACT
-
-// --- 🗣️ ACT CONVERSE (対話公理 - AI中核) ---
-ACT CONVERSE (INPUT: USER_PROMPT, OUTPUT: AI_RESPONSE)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    
-    // 1. ACT PARSEの自動実行 (現在の論理を理解)
-    ACT PARSE (SOURCE: CODE, TARGET: CONTEXT)
-    
-    // 2. INPUTの解析とCONTEXTへの追加 (対話の開始)
-    SET REGISTRY_CONTEXT = APPEND(REGISTRY_CONTEXT, "USER: " + USER_PROMPT)
-    SET REGISTRY_INPUT = USER_PROMPT // 簡易的な保存
-
-    // 3. 応答生成の決定論的ロジック（LLMシミュレーション）
-    IF CONTAINS(USER_PROMPT, "MINT") THEN
-        LET MINT_COUNT = COUNT_ACTS(REGISTRY_CODE, "MINT")
-        SET REGISTRY_OUTPUT = "MINT公理について、現在 " + MINT_COUNT + " の定義が見つかりました。追加を提案します。"
-        
-        // 応答後、次のACT GENERATEの実行を提案する
-        ACT GENERATE (SOURCE: CONTEXT, TARGET: CODE, PROMPT: "新しいMINT公理を提案")
-    ELSE IF CONTAINS(USER_PROMPT, "VIBE") THEN
-        SET REGISTRY_OUTPUT = "現在のVIBEは " + REGISTRY_VIBE + " です。ACT REFLECTにより偶奇で修正されています。"
-    ELSE
-        SET REGISTRY_OUTPUT = "ユーザーの要求をCONTEXTに追加しました。具体的な論理作為を指示してください。"
-    END IF
-
-    LOG("CONVERSE: 対話サイクルを完了。AIが応答を生成しました。")
-END ACT
-
-// --- 🧠 ACT PARSE (論理の理解公理) ---
-ACT PARSE (SOURCE: CODE, TARGET: CONTEXT)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    SET REGISTRY_CODE = CODE_TEXT 
-    
-    LET MINT_COUNT = COUNT_ACTS(REGISTRY_CODE, "MINT")
-    LET HALT_CHECK = GET_PARAM(REGISTRY_CODE, "HALT LOGIC", "CHECK")
-
-    SET REGISTRY_CONTEXT = APPEND(REGISTRY_CONTEXT, "監査：MINT公理は" + MINT_COUNT + "回定義されています。")
-    
-    IF MINT_COUNT == 0 THEN CALC_HALT 
-END ACT
-
-// --- ✍️ ACT GENERATE (論理の生成公理) ---
-ACT GENERATE (SOURCE: CONTEXT, TARGET: CODE, PROMPT: "新しいMINT公理を提案")
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    
-    // CONTEXT（現在の監査結果）に基づき、新しいコードを生成するフック
-    LET NEW_ACT = "\n// --- 🤖 AI提案 MINT V2 --- \nACT MINT_V2 (T: USER_A, A: 20.0)\n    IF REGISTRY_VIBE > 102.00 THEN CALC_HALT \n    SET REGISTRY_ALPHA[T] = ADD(REGISTRY_ALPHA[T], A)\n    SET REGISTRY_VIBE = ADD_VIBE(REGISTRY_VIBE)\nEND ACT\n"
-
-    SET REGISTRY_CODE = ADD_TO_CODE(REGISTRY_CODE, NEW_ACT)
-    
-    LOG("GENERATE: AIが新しい公理（MINT_V2）をコードに追加しました。") 
-END ACT
-
-// --- 🔮 補助公理: ACT REFLECT (自己修正律の公理) ---
-ACT REFLECT (TARGET: VIBE, SOURCE: CYCLE, FACTOR: 0.001)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    IF MOD(REGISTRY_CYCLE, 2) == 0 THEN
-        SET REGISTRY_VIBE = SUB(REGISTRY_VIBE, MUL(REGISTRY_VIBE, FACTOR))
-    ELSE
-        SET REGISTRY_VIBE = ADD(REGISTRY_VIBE, MUL(REGISTRY_VIBE, FACTOR))
-    END IF
-    SET REGISTRY_CYCLE = ADD(REGISTRY_CYCLE, 1) 
-    IF REGISTRY_VIBE > 105.00 OR REGISTRY_VIBE < 95.00 THEN CALC_HALT
-END ACT
-
-// --- 🔁 補助公理: ACT SWAP (市場の交換律の公理) ---
-ACT SWAP (USER: USER_A, FROM: ALPHA, TO: BETA, AMOUNT: 1.0, RATE: 1.0)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    IF FROM == TO THEN CALC_HALT 
-    
-    LET REGISTRY_FROM = (FROM == ALPHA) ? REGISTRY_ALPHA : REGISTRY_BETA
-    LET REGISTRY_TO = (TO == ALPHA) ? REGISTRY_ALPHA : REGISTRY_BETA
-    
-    LET FIXED_AMOUNT = AMOUNT
-    SET REGISTRY_FROM[USER] = SUB(REGISTRY_FROM[USER], FIXED_AMOUNT)
-    SET REGISTRY_TO[USER] = ADD(REGISTRY_TO[USER], MUL(FIXED_AMOUNT, RATE))
-
-    SET REGISTRY_VIBE = ADD_VIBE_SMALL(REGISTRY_VIBE) 
-    IF REGISTRY_VIBE > 110.00 THEN CALC_HALT
-END ACT
-
-// --- 💰 補助公理: ACT MINT / ACT TRANSFER ---
-ACT MINT (T: USER_A, A: 10.0)
-    IF REGISTRY_HALT == TRUE THEN CALC_HALT
-    SET REGISTRY_ALPHA[T] = ADD(REGISTRY_ALPHA[T], A)
-    SET REGISTRY_VIBE = ADD_VIBE(REGISTRY_VIBE) 
-    IF REGISTRY_VIBE > 110.00 THEN CALC_HALT 
-END ACT
-
-ACT TRANSFER (S: USER_A, R: USER_B, A: 50.0)
-    IF REGISTRY_ALPHA[S] < A THEN CALC_HALT
-    SET REGISTRY_ALPHA[S] = SUB(REGISTRY_ALPHA[S], A)
-    SET REGISTRY_ALPHA[R] = ADD(REGISTRY_ALPHA[R], A)
-    SET REGISTRY_VIBE = SUB_VIBE(REGISTRY_VIBE) 
-    IF REGISTRY_VIBE < 90.00 THEN CALC_HALT 
-END ACT`;
-                        
-                        init(); 
-                        logAudit('INFO', '数理的沈黙が再確立されました。');
-                        if (!silent) alert('📄 新規作成: 数理的沈黙が再確立されました。');
-                    }
-                }
             };
         })();
-        
-        // --- 簡易VM拡張機能（ACT PARSE/GENERATEのヘルパー関数） ---
-        function COUNT_ACTS(code, actName) {
-            const regex = new RegExp(`ACT\\s+${actName}(\\s|_|\\()`, 'g');
-            return (code.match(regex) || []).length;
-        }
-        // ACTブロックから特定のパラメータを抽出（DECLARE_SELFのPORTFOLIO抽出のために簡易化）
-        function GET_PARAM(codeOrBlock, actName, paramName) {
-            // パラメータ名がPORTFOLIOの場合、SET REGISTRY_PORTFOLIO = "..." の右辺を抽出する
-            if (paramName === 'PORTFOLIO') {
-                const portMatch = codeOrBlock.match(/SET\s+REGISTRY_PORTFOLIO\s*=\s*"(.*?)"/s);
-                return portMatch ? portMatch[1].trim() : null;
-            }
 
-            const actBlockMatch = codeOrBlock.match(new RegExp(`ACT\\s+${actName}\\s*\\(([^)]*)\\)[\\s\\S]*?END\\s+ACT`, 's'));
-            if (!actBlockMatch) return "ACT_NOT_FOUND";
-            const paramsStr = actBlockMatch[1];
-            const paramMatch = paramsStr.match(new RegExp(`${paramName}:\\s*(.*?)(?:,|$)`));
-            return paramMatch ? paramMatch[1].trim() : "PARAM_NOT_FOUND";
-        }
-
-        function ADD_TO_CODE(code, newAct) {
-            // 新規レジストリ定義の直前に追加する
-            const registryRegex = /(\/\/ --- ⚙️ 新規レジストリ定義[\s\S]*?\/\/ --- 🤖 AI提案 ACT DECLARE_SELF)/;
-            const haltLogicRegex = /(ACT\s+HALT\s+LOGIC[\s\S]*?END\s+ACT)/;
-            
-            if (code.match(registryRegex)) {
-                 // 既存のACT DECLARE_SELFの前に挿入
-                 const newCode = code.replace(registryRegex, newAct + '\n' + code.match(registryRegex)[0]);
-                 return newCode;
-            } else if (code.match(haltLogicRegex)) {
-                 // HALT LOGICの直前に追加する (フォールバック)
-                 const newCode = code.replace(haltLogicRegex, newAct + '\n' + code.match(haltLogicRegex)[0]);
-                 return newCode;
-            }
-            return code + '\n' + newAct;
-        }
-        
-        function CONTAINS(text, subString) {
-             return text.includes(subString);
-        }
-        function APPEND(array, item) {
-             const newArray = [...array, item];
-             if (newArray.length > 5) {
-                 newArray.shift();
-             }
-             return newArray;
-        }
-        function ADD_VIBE(v) { return ADD_FIXED(v, VIBE_DELTA_ADD); }
-        function SUB_VIBE(v) { return SUB_FIXED(v, VIBE_DELTA_SUB); }
-        function ADD_VIBE_SMALL(v) { return ADD_FIXED(v, VIBE_DELTA_SWAP); }
-
-
-        // 初期起動 (Calc-OSブートストラップ)
-        document.addEventListener('DOMContentLoaded', () => {
-            CalcOS.init(); 
-            CalcOS.loadLogic(); 
-        });
+        // 起動
+        window.onload = CalcOS.init;
     </script>
 </body>
 </html>
