@@ -90,7 +90,7 @@
     <div id="cde-container">
         <h1 style="color: #ff9900;">CalcLang CDE v0(6)</h1>
         <p style="color: #ccc; font-size: small;">
-            **純粋な数理的沈黙のメモ帳**を安定させるための、コア検証モードです。**`parseAct` の引数解析の堅牢性を強化しました。**
+            **純粋な数理的沈黙のメモ帳**を安定させるための、コア検証モードです。**<code>parseAct</code> の引数解析の堅牢性を強化しました。**
         </p>
 
         <p>
@@ -113,7 +113,7 @@ END ACT
 
 
 // --- 2. ACT CALC (沈黙の演算テスト) ---
-// 演算子とパラメータの両端にノイズとなる空白を挿入
+// 演算子とパラメータの両端にノイズとなる空白を意図的に挿入
 ACT CALC ( K: VAR_3, OP:  "ADD" , V1: VAR_1 , V2:  50  )
 END ACT
 // 存在しない変数を使用し、VMエラーではなく論理的な失敗を誘発するか確認
@@ -434,7 +434,7 @@ END ACT
                     return "SUCCESS";
                 }
                 
-                // --- ACT DEPLOY はコア検証モードでは削除 ---
+                // --- ACT DEPLOY/IO はコア検証モードでは削除 ---
                 if (actName === 'DEPLOY' || actName === 'IO') {
                     logAudit('AUDIT', `ACT ${actName} はコア検証モードのためスキップされました。`);
                     return "SUCCESS";
